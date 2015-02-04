@@ -145,6 +145,10 @@
 ;;
 (blink-cursor-mode 0)
 
+;; Make commons lisp functions available.
+;;
+(require 'cl)
+
 ;; -----------------------------------------------------------------------------
 ;;
 ;;                                 Functions
