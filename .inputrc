@@ -1,0 +1,17 @@
+# ------------------------------------------------------------------------------
+#
+# .inputrc
+#
+# Custom readline bindings.
+#
+# author: Andy Gherna (argherna@gmail.com)
+#
+# ------------------------------------------------------------------------------
+
+# Include the system-wide inputrc.
+#
+$include /etc/inputrc
+
+# Bind undo to C-/
+#
+"\C-/": undo

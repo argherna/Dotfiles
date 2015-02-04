@@ -1,0 +1,107 @@
+# ------------------------------------------------------------------------------
+#
+# .profile.agherna
+#
+# Read in when agherna switches to this service user. See
+# <URL:https://wiki.cites.uiuc.edu/wiki/x/FYHpAg> for more information about 
+# this.
+#
+# ------------------------------------------------------------------------------
+
+
+# ------------------------------------------------------------------------------
+#
+#			     Environment variables
+#
+# ------------------------------------------------------------------------------
+
+# Set a prompt.
+#
+PS1="[\u@\h \W]$ "
+
+# Set the editor to vim
+#
+export EDITOR=/usr/bin/emacs
+
+# Colors for ls
+#
+export LS_COLORS='di=36'
+
+# ------------------------------------------------------------------------------
+#
+#                        Start some programs by default
+#
+# ------------------------------------------------------------------------------
+
+
+# ------------------------------------------------------------------------------
+#
+#				   Functions
+#
+# ------------------------------------------------------------------------------
+
+
+# Source in ~/Scripts/maven_functions
+#
+if [ -f ~/Scripts/maven_functions ]; then
+  . ~/Scripts/maven_functions
+fi
+
+# Source in ~/Scripts/svn_functions
+#
+if [ -f ~/Scripts/svn_functions ]; then
+  . ~/Scripts/svn_functions
+fi
+
+# Create a directory (with parents as needed), then change to it.
+#
+mkcd() {
+  if [ $# -eq 0 ]; then
+    echo "Usage: $FUNCNAME DIR[/SUB_DIR1/SUB_DIR2...]"
+    return 1
+  fi
+
+  mkdir -p "$1"
+  cd "$1"
+}
+
+# ------------------------------------------------------------------------------
+#
+#				    Aliases
+#
+# ------------------------------------------------------------------------------
+
+# cp with prompt if overwriting.
+#
+alias cpi='cp -i'
+
+# Default df and du to human readable figures.
+#
+alias dfh='df -h'
+alias duh='du -h'
+
+# Grep highlighting matches in color.
+#
+alias grepc='grep --color'
+
+# Long listing.
+#
+alias ll='lsc -l'
+
+# Color alias for ls.
+#
+alias lsc='ls --color=always'
+
+# mv with prompt.
+#
+alias mvi='mv -i'
+
+# rm with prompt as default.
+#
+alias rm='rm -i'
+
+# scp passing TTY_OWNER as the User to ssh.
+#
+alias scpu='scp -oUser=${TTY_OWNER}'
+
+alias ..='cd ..'

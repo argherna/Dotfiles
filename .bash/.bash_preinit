@@ -1,0 +1,118 @@
+#!/bin/bash
+
+# ------------------------------------------------------------------------------
+#
+# .bash_preinit
+#
+# Sets the environment variables based on the uname.
+#
+# ------------------------------------------------------------------------------
+
+KERNEL=$(uname)
+EMACS=
+EMACS_CLIENT=
+PATH="$HOME/Scripts:$HOME/bin:$PATH:/opt/bin:/Library/PostgreSQL/9.2/bin"
+
+# Set environment based on the kernel.
+#
+if [ "$KERNEL" == "Linux" ]; then
+
+  # Environment variables
+  #
+  EMACS=/usr/bin/emacs
+  EMACS_CLIENT=/usr/bin/emacsclient
+
+  cmdnotify()
+  {
+    CMD=$1
+    shift
+ 
+    $CMD $@
+    RETCODE=$?
+    CUR_DIR=${PWD##*/}
+    CUR_CMD=`basename $CMD`
+    if [ $RETCODE -eq 0 ]
+    then
+      notify-send -c $CUR_CMD -i emblem-default -t 3600000 "$CUR_DIR: $CUR_CMD successful" "$(date)"
+    else
+      notify-send -c $CUR_CMD -i emblem-important -t 3600000 "$CUR_DIR: $CUR_CMD failed" "$(date)"
+    fi
+    return $RETCODE
+  }
+elif [ "$KERNEL" == "Darwin" ]; then
+
+  if [ -f ~/Scripts/MacOSX_functions ]; then
+    . ~/Scripts/MacOSX_functions
+  fi
+
+  # Environment variables
+  #
+  EMACS=/Applications/Emacs.app/Contents/MacOS/Emacs
+  EMACS_CLIENT=/Applications/Emacs.app/Contents/MacOS/bin/emacsclient
+  
+  # Makes the directories show up in cyan
+  export LSCOLORS=ExgxcxdxCxegedabagacad
+
+  # Grep highlighting matches in color.
+  #
+  alias egrepc='egrep --color'
+  alias fgrepc='fgrep --color'
+  alias grepc='grep --color'
+
+  # Long listing.
+  #
+  alias ll='lsc -l'
+
+  # Color alias for ls.
+  #
+  alias lsc='ls -G'
+
+  # Set up Emacs (Mac OS X version from <URL:http://emacsformacosx.org> to
+  # start in the terminal window.
+  #
+  alias emacsnw='/Applications/Emacs.app/Contents/MacOS/Emacs -nw'
+
+  # Open OS X apps from the command line.
+  #
+  alias Adium='open /Applications/Adium.app/'
+  alias Calculator='open /Applications/Calculator.app/'
+  alias Calendar='open /Applications/Calendar.app/'
+  alias Chrome='open /Applications/Google\ Chrome.app/'
+  alias Console='open /Applications/Utilities/Console.app/'
+  alias DbViz='open /Applications/DbVisualizer.app/'
+  alias Dictionary='open /Applications/Dictionary.app/'
+  alias Eclipse='open /Applications/eclipse\ kepler/Eclipse.app/'
+  alias Emacs='open /Applications/Emacs.app/'
+  alias Firefox='open /Applications/Firefox.app/'
+  alias iTunes='open /Applications/iTunes.app/'
+  alias KeePassX='open /Applications/KeePassX.app/'
+  alias Lync='open /Applications/Microsoft\ Lync.app/'
+  alias Mail='open /Applications/Mail.app/'
+  alias Preview='open /Applications/Preview.app/'
+  alias Safari='open /Applications/Safari.app/'
+  alias VisualVm='open /Applications/VisualVm.app/'
+  alias Vlc='open /Applications/VLC.app/'
+
+  cmdnotify()
+  {
+    CMD=$1
+    shift
+    
+    $CMD $@
+    RETCODE=$?
+    CUR_DIR=${PWD##*/}
+    CUR_CMD=`basename $CMD`
+    if [ $RETCODE -eq 0 ]
+    then
+      printf '\a'
+      growlnotify -s -d $CUR_CMD -n $CUR_CMD -m "$CUR_DIR: $CUR_CMD successful $(date)"
+    else
+      printf '\a\a'
+      growlnotify -s -d $CUR_CMD -n $CUR_CMD -m "$CUR_DIR: $CUR_CMD failed $(date)"
+    fi
+    return $RETCODE
+  }  
+fi
+
+export EMACS
+export EMACS_CLIENT
