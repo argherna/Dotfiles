@@ -339,22 +339,7 @@ there's a region, all lines that region covers will be duplicated."
 (global-set-key (kbd "C-c <up>")    'windmove-up)
 (global-set-key (kbd "C-c <down>")  'windmove-down)
 
-
-;; -----------------------------------------------------------------------------
-;;                             Unicode characters
-;; -----------------------------------------------------------------------------
-
-;; Arrows
-;;
-(global-set-key (kbd "C-c <M-right>") "→")
-(global-set-key (kbd "C-c <M-left>") "←")
-(global-set-key (kbd "C-c <M-up>") "↑")
-(global-set-key (kbd "C-c <M-down>") "↓")
-
-(global-set-key (kbd "C-c <C-right>") "↔")
-(global-set-key (kbd "C-c <C-left>") "↔")
-(global-set-key (kbd "C-c <C-up>") "↕")
-(global-set-key (kbd "C-c <C-down>") "↕")
+(global-set-key (kbd "C-c w") 'write-region)
 
 ;; -----------------------------------------------------------------------------
 ;;
@@ -379,6 +364,40 @@ there's a region, all lines that region covers will be duplicated."
 )
 
 (andy/hardcore-ui)
+
+;; -----------------------------------------------------------------------------
+;;
+;;                            Common Abbreviations
+;;
+;; -----------------------------------------------------------------------------
+
+;; Inspired by <http://ergoemacs.org/emacs/emacs_abbrev_mode.html>
+(define-abbrev-table 'global-abbrev-table '(
+
+  ;; math/unicode symbols
+  ("8rarr" "→")
+  ("8larr" "←")
+  ("8uarr" "↑")
+  ("8darr" "↓")
+  ("8lrarr" "↔")
+  ("8udarr" "↕")
+  
+  ("8in" "∈")
+  ("8nin" "∉")
+  ("8inf" "∞")
+  ("8luv" "♥")
+  ("8smly" "☺")
+
+  ;; email
+  ("8me" "argherna@gmail.com")
+
+))
+
+;; stop asking whether to save newly added abbrev when quitting emacs
+(setq save-abbrevs nil)
+
+;; turn on abbrev mode globally
+(setq-default abbrev-mode t)
 
 
 ;; -----------------------------------------------------------------------------
