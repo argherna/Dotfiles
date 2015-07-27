@@ -17,7 +17,15 @@
 
 # Set a prompt.
 #
-PS1="[\u@\h \W]$ "
+#PS1="[\u@\h \W]$ "
+
+if [[ -z "$PSGCONF_CLASS_NAME" || "$PSGCONF_CLASS_NAME" == "Development" ]]; then
+  export PS1="[\[$(tput sgr0)\]\[\033[38;5;0m\]\[\033[48;5;6m\]\u\[$(tput sgr0)\]\[\033[38;5;15m\]\[\033[48;5;-1m\]@\[$(tput sgr0)\]\[\033[48;5;8m\]\h\[$(tput sgr0)\]\[\033[48;5;-1m\] \[$(tput sgr0)\]\[\033[38;5;12m\]\W\[$(tput sgr0)\]\[\033[38;5;15m\]\[$(tput sgr0)\]] (\[\033[38;5;0m\]\[\033[48;5;7m\]\\#\[$(tput sgr0)\])$ "
+elif [[ "$PSGCONF_CLASS_NAME" == "Test" ]]; then
+  export PS1="[\[$(tput sgr0)\]\[\033[38;5;0m\]\[\033[48;5;3m\]\u\[$(tput sgr0)\]\[\033[38;5;15m\]\[\033[48;5;-1m\]@\[$(tput sgr0)\]\[\033[48;5;8m\]\h\[$(tput sgr0)\]\[\033[48;5;-1m\] \[$(tput sgr0)\]\[\033[38;5;12m\]\W\[$(tput sgr0)\]\[\033[38;5;15m\]\[$(tput sgr0)\]] (\[\033[38;5;0m\]\[\033[48;5;7m\]\\#\[$(tput sgr0)\])$ "
+elif [[ "$PSGCONF_CLASS_NAME" == "Production" ]]; then
+  export PS1="[\[$(tput sgr0)\]\[\033[38;5;0m\]\[\033[48;5;9m\]\u\[$(tput sgr0)\]\[\033[38;5;15m\]\[\033[48;5;-1m\]@\[$(tput sgr0)\]\[\033[48;5;8m\]\h\[$(tput sgr0)\]\[\033[48;5;-1m\] \[$(tput sgr0)\]\[\033[38;5;12m\]\W\[$(tput sgr0)\]\[\033[38;5;15m\]\[$(tput sgr0)\]] (\[\033[38;5;0m\]\[\033[48;5;7m\]\\#\[$(tput sgr0)\])$ "    
+fi
 
 # Set the editor to vim
 #
@@ -47,12 +55,6 @@ if [ -f ~/Scripts/maven_functions ]; then
   . ~/Scripts/maven_functions
 fi
 
-# Source in ~/Scripts/svn_functions
-#
-if [ -f ~/Scripts/svn_functions ]; then
-  . ~/Scripts/svn_functions
-fi
-
 # Create a directory (with parents as needed), then change to it.
 #
 mkcd() {
@@ -63,6 +65,32 @@ mkcd() {
 
   mkdir -p "$1"
   cd "$1"
+}
+
+# Show the last N commands from history (default is 10).
+#
+htail() {
+  if [ $# -eq 0 ]; then
+    history | tail
+  else
+    num_regex='^[0-9]+$'
+    if [[ "$1" =~ $num_regex ]]; then
+      history | tail -${1}
+    else
+      echo "Usage: $FUNCNAME [N] where N is a number."
+      return 1
+    fi
+  fi
+}
+
+# Grep History
+#
+hgrep() { 
+  history | grep $1; 
+}
+
+hgrepc() {
+  history | grep --color $1;
 }
 
 # ------------------------------------------------------------------------------
