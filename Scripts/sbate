@@ -1,0 +1,78 @@
+#!/usr/bin/env python
+
+#
+# NAME
+#
+#     sbate
+#
+# SYNOPSIS
+#
+#     sbate FILENAME
+#
+# PARAMETERS
+#
+#     FILENAME
+#         Required filename to attach to the email sent by this program.
+#
+# DESCRIPTION
+#
+#     Sends a Binary file ATtachment in an Email (sbate).
+#
+# EXIT STATUS
+#
+#     0
+#         attachement was emailed successfully.
+#
+#     1
+#         emailing attachment failed (error message printed).
+#
+#     2
+#         filename argument wasn't specified.
+#
+
+from email import Encoders
+from email.MIMEBase import MIMEBase
+from email.MIMEMultipart import MIMEMultipart
+import os
+import smtplib
+import socket
+import sys
+
+SENDER = 'changeme@example.com'
+RECEIVER = 'webmaster@example.com'
+
+HOST = 'smtp.example.com'
+PORT = 25
+
+USERNAME = 'webmaster@example.com'
+PASSWORD = 'changeme'
+
+if len(sys.argv[1:]) == 0:
+    print "Usage: %s FILENAME" % os.path.basename(sys.argv[0])
+    sys.exit(2)
+
+f = sys.argv[1]
+
+try:
+    msg = MIMEMultipart()
+    msg['Subject'] = 'change subject'
+    msg['From'] = SENDER
+    msg['To'] = RECEIVER
+    msg.preamble = 'Change preamble.'
+
+    part = MIMEBase('application', 'octet-stream')
+    part.set_payload(open(f, 'rb').read())
+    Encoders.encode_base64(part)
+    part.add_header('Content-Disposition', 'attachment; filename="%s"' % os.path.basename(f))
+    msg.attach(part)
+
+    smtp = smtplib.SMTP(HOST, PORT)
+    smtp.login(USERNAME, PASSWORD)
+    smtp.sendmail(SENDER, [RECEIVER], msg.as_string())
+    smtp.quit()
+except socket.gaierror:
+    print "Can't find SMTP host %s" % HOST
+    sys.exit(1)
+except IOError:
+    print "Can't find file %s" % f
+    sys.exit(1)
