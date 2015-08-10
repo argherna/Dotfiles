@@ -14,6 +14,7 @@ The Apache access log format is documented at
 
 '''
 
+from collections import namedtuple
 from optparse import OptionParser
 
 import csv
@@ -36,6 +37,14 @@ If access_log_file is not specified or is '-', sys.stdin is read.
 If output_path is not specified, output is sent to sys.stdout.
 
 '''
+
+
+RequestLineTokens = namedtuple('RequestLineTokens',
+                               ['ip_address', 'identd', 'http_user',
+                                'request_time', 'http_method', 'request_url',
+                                'http_vers', 'http_response_code',
+                                'http_response_size', 'referrer',
+                                'user_agent'])
 
 
 class InputThingError(Exception):
@@ -98,10 +107,63 @@ class OutputThing(object):
         else:
             self.out_file.close()
 
-    def write_line(self, token_list):
+    def write_line(self, req_line):
         if self.csv_writer is None:
             raise OutputThingError('OutputThing is not initialized!')
-        self.csv_writer.writerow(token_list)
+        if req_line.tokens is not None:
+            try:
+                self.csv_writer.writerow(req_line.tokens)
+            except RequestLineError, (message):
+                sys.stderr.write('%s, Skipping.\n' % (message))
+
+    def write_header(self):
+        self.csv_writer.writerow(['ip_address', 'identd', 'HTTP_user',
+                                  'Request_time', 'HTTP_Method',
+                                  'Request_URL', 'HTTP_Version',
+                                  'HTTP_ResponseCode', 'HTTP_Response_Size',
+                                  'HTTP_Referrer', 'User_Agent'])
+
+
+class RequestLineError(Exception):
+    pass
+
+
+class RequestLine(object):
+
+    def __init__(self, line):
+        self.lineRegex = re.compile(r'''(\d+\.\d+\.\d+\.\d+)\s # the ip address
+                                        ([^ ]*)\s              # identd
+                                        ([^ ]*)\s              # HTTP user
+                                        \[([^\]]*)\]\s         # request time
+                                        "([^"]*)"\s            # request line
+                                        (\d+)\s                # HTTP status
+                                        ([^ ]*)\s              # Response size
+                                        "([^"]*)"\s            # HTTP Referrer
+                                        "([^"]*)"              # User-Agent''',
+                                    re.VERBOSE)
+        self.req_line_tokens = None
+        self.line = line
+        self.matches = self.lineRegex.match(self.line)
+
+    @property
+    def tokens(self):
+        if self.matches is not None:
+            (ip_address, identd, http_user, request_time,
+             request_line, http_response_code, http_response_size,
+             referrer, user_agent) = self.matches.groups()
+            try:
+                (http_method, request_url, http_vers) = request_line.split()
+            except ValueError:
+                raise RequestLineError("Bad request line: %s\n" %
+                                       (request_line))
+            self.req_line_tokens = RequestLineTokens(ip_address, identd,
+                                                     http_user, request_time,
+                                                     http_method, request_url,
+                                                     http_vers,
+                                                     http_response_code,
+                                                     http_response_size,
+                                                     referrer, user_agent)
+        return self.req_line_tokens
 
 
 def main():
@@ -141,52 +203,10 @@ def main():
                          delimiter=opts.delimiter) as csv_out, \
              InputThing(logfilename) as log_in:
             if opts.write_header_row:
-                csv_out.write_line(['ip_address',
-                                    'identd',
-                                    'HTTP_user',
-                                    'Request_time',
-                                    'HTTP_Method',
-                                    'Request_URL',
-                                    'HTTP_Version',
-                                    'HTTP_ResponseCode',
-                                    'HTTP_Response_Size',
-                                    'HTTP_Referrer',
-                                    'User_Agent'])
-
-            lineRegex = re.compile(r'''(\d+\.\d+\.\d+\.\d+)\s # the ip address
-                                   ([^ ]*)\s              # identd
-                                   ([^ ]*)\s              # HTTP user
-                                   \[([^\]]*)\]\s         # time of the request
-                                   "([^"]*)"\s            # request line
-                                   (\d+)\s                # HTTP response code
-                                   ([^ ]*)\s              # HTTP response size
-                                   "([^"]*)"\s            # HTTP Referrer
-                                   "([^"]*)"              # User-Agent''',
-                                   re.VERBOSE)
+                csv_out.write_header()
 
             for line in log_in:
-                m = lineRegex.match(line)
-                if m:
-                    (ip_address, identd, http_user, request_time,
-                     request_line, http_response_code, http_response_size,
-                     referrer, user_agent) = m.groups()
-                    try:
-                        (http_method, request_url,
-                         http_vers) = request_line.split()
-                        csv_out.write_line([ip_address,
-                                            identd,
-                                            http_user,
-                                            request_time,
-                                            http_method,
-                                            request_url,
-                                            http_vers,
-                                            http_response_code,
-                                            http_response_size,
-                                            referrer,
-                                            user_agent])
-                    except ValueError:
-                        sys.stderr.write("Skipping request line %s\n" %
-                                         (request_line))
+                csv_out.write_line(RequestLine(line))
     except InputThingError, (message):
         sys.stderr.write("%s Exiting!\n" % (message))
         return 1
