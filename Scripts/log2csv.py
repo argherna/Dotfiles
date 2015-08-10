@@ -166,7 +166,7 @@ class RequestLine(object):
         return self.req_line_tokens
 
 
-def main():
+if __name__ == '__main__':
     parser = OptionParser(usage=__usage__,
                           description=__desc__,
                           epilog=__epilog__)
@@ -209,14 +209,11 @@ def main():
                 csv_out.write_line(RequestLine(line))
     except InputThingError, (message):
         sys.stderr.write("%s Exiting!\n" % (message))
-        return 1
+        sys.exit(1)
     except OutputThingError, (message):
         sys.stderr.write("%s Exiting!\n" % (message))
-        return 1
+        sys.exit(1)
     except KeyboardInterrupt:
         pass
 
-    return 0
-
-if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(0)
