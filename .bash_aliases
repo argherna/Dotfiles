@@ -54,6 +54,10 @@ alias tf='tail -f'
 #
 alias tft='tail -f -n 0'
 
+# start tmux in 256 color mode
+#
+alias t2='tmux -2'
+
 # ------------------------------------------------------------------------------
 #
 #                                  Functions
@@ -68,6 +72,22 @@ hgrep() {
 
 hgrepc() {
   history | grep --color $1;
+}
+
+# Show the last N commands from history (default is 10).
+#
+htail() {
+  if [ $# -eq 0 ]; then
+    history | tail
+  else
+    num_regex='^[0-9]+$'
+    if [[ "$1" =~ $num_regex ]]; then
+      history | tail -${1}
+    else
+      echo "Usage: $FUNCNAME [N] where N is a number."
+      return 1
+    fi
+  fi
 }
 
 # Make new directory, then change to it.
@@ -115,6 +135,19 @@ emacsk() {
   fi
 }
 
+encode_url() {
+  python -c "
+import urllib, sys
+print urllib.quote_plus('${1}')
+sys.exit(0)"
+}
+
+decode_url() {
+  python -c "
+import urllib, sys
+print urllib.unquote_plus('${1}')
+sys.exit(0)"
+}
 
 # ------------------------------------------------------------------------------
 #
