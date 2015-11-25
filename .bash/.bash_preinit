@@ -11,11 +11,15 @@
 KERNEL=$(uname)
 EMACS=
 EMACS_CLIENT=
-PATH="$HOME/Scripts:$HOME/bin:$PATH:/opt/bin:/Library/PostgreSQL/9.2/bin"
+PATH="$HOME/Scripts:$HOME/bin:$PATH"
 
 # Set environment based on the kernel.
 #
 if [ "$KERNEL" == "Linux" ]; then
+
+  # Alias tmux to use Ubuntu config file
+  #
+  alias tmux='tmux -f ~/.ubu.tmux.conf'
 
   # Environment variables
   #
@@ -51,49 +55,9 @@ elif [ "$KERNEL" == "Darwin" ]; then
   EMACS_CLIENT=/Applications/Emacs.app/Contents/MacOS/bin/emacsclient
   
   # Makes the directories show up in cyan
-  export LSCOLORS=ExgxcxdxCxegedabagacad
-
-  # Grep highlighting matches in color.
-  #
-  alias egrepc='egrep --color'
-  alias fgrepc='fgrep --color'
-  alias grepc='grep --color'
-
-  # Long listing.
-  #
-  alias ll='lsc -l'
-
-  # Color alias for ls.
-  #
-  alias lsc='ls -G'
-
-  # Set up Emacs (Mac OS X version from <URL:http://emacsformacosx.org> to
-  # start in the terminal window.
-  #
-  alias emacsnw='/Applications/Emacs.app/Contents/MacOS/Emacs -nw'
-
-  # Open OS X apps from the command line.
-  #
-  alias Adium='open /Applications/Adium.app/'
-  alias Calculator='open /Applications/Calculator.app/'
-  alias Calendar='open /Applications/Calendar.app/'
-  alias Chrome='open /Applications/Google\ Chrome.app/'
-  alias Console='open /Applications/Utilities/Console.app/'
-  alias DbViz='open /Applications/DbVisualizer.app/'
-  alias Dictionary='open /Applications/Dictionary.app/'
-  alias Eclipse='open /Applications/eclipse\ kepler/Eclipse.app/'
-  alias Emacs='open /Applications/Emacs.app/'
-  alias Firefox='open /Applications/Firefox.app/'
-  alias iTunes='open /Applications/iTunes.app/'
-  alias KeePassX='open /Applications/KeePassX.app/'
-  alias Lync='open /Applications/Microsoft\ Lync.app/'
-  alias Mail='open /Applications/Mail.app/'
-  alias Preview='open /Applications/Preview.app/'
-  alias Safari='open /Applications/Safari.app/'
-  alias VisualVm='open /Applications/VisualVm.app/'
-  alias Vlc='open /Applications/VLC.app/'
-
-  cmdnotify()
+  export LSCOLORS=gxfxcxdxbxegedabagacad
+  
+  cmdstatus()
   {
     CMD=$1
     shift
