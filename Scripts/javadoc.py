@@ -159,8 +159,8 @@ class Handler(BaseHTTPRequestHandler):
     </body>
 </html>''' % ('/'.join(bad_path))
         self.send_response(400)
-        self.send_header("Content-Type", "text/html")
-        self.send_header("Content-Length", len(doc))
+        self.send_header('Content-Type', 'text/html')
+        self.send_header('Content-Length', len(doc))
         self.end_headers()
         self.wfile.write(doc)
 
@@ -174,8 +174,8 @@ class Handler(BaseHTTPRequestHandler):
     </body>
 </html>''' % ('/'.join(bad_path))
         self.send_response(404)
-        self.send_header("Content-Type", "text/html")
-        self.send_header("Content-Length", len(doc))
+        self.send_header('Content-Type', 'text/html')
+        self.send_header('Content-Length', len(doc))
         self.end_headers()
         self.wfile.write(doc)
 
@@ -190,8 +190,8 @@ class Handler(BaseHTTPRequestHandler):
     </body>
 </html>'''
         self.send_response(500)
-        self.send_header("Content-Type", "text/html")
-        self.send_header("Content-Length", len(doc))
+        self.send_header('Content-Type', 'text/html')
+        self.send_header('Content-Length', len(doc))
         self.end_headers()
         self.wfile.write(doc)
 
