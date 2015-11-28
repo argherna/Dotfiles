@@ -45,6 +45,10 @@ if [ "$KERNEL" == "Linux" ]; then
   }
 elif [ "$KERNEL" == "Darwin" ]; then
 
+  # Alias tmux to use Ubuntu config file
+  #
+  alias tmux='tmux -f ~/.osx.tmux.conf'
+
   if [ -f ~/Scripts/MacOSX_functions ]; then
     . ~/Scripts/MacOSX_functions
   fi
