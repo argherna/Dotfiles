@@ -1,0 +1,87 @@
+#!/bin/bash
+
+# ------------------------------------------------------------------------------
+#
+# MacOSX_functions
+#
+# Contains convenience functions specific to Mac OSX.
+#
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+#
+#                            Environment Variables
+#
+# ------------------------------------------------------------------------------
+
+# Makes the directories show up in cyan
+export LSCOLORS=gxfxcxdxbxegedabagacad
+
+# DbVisualizer
+#
+export DBVIS_VERS=8.0.11
+export DBVIS_CLI_HOME=/Applications/DbVisualizer.app/Contents/java/app
+
+# ------------------------------------------------------------------------------
+#
+#                                  Functions
+#
+# ------------------------------------------------------------------------------
+
+
+# Launch the DbVisualizer command line tool.
+#
+dbviscmd() {
+  local dbvis_cmd=$DBVIS_CLI_HOME/dbviscmd.sh 
+  $dbvis_cmd "$*"
+}
+
+# Get rid of DS_STORE (Mac OSX only)
+#
+un_dsstore() {
+  local dsstore_dir=$(pwd)
+  if [ $# -eq 1 ]; then
+     dsstore_dir=$1
+  fi
+  
+  find $dsstore_dir -type f -name ".DS_Store" -exec rm -rf {} \;
+}
+
+un_macosx() {
+  local macosx_dir=$(pwd)
+  if [ $# -eq 1 ]; then
+    macosx_dir=$1
+  fi
+
+  find $macosx_dir -type d -name "__MACOSX" -exec rm -rf {} \;
+}
+
+# Converts a text file with '\r\n' line endings (DOS files) to '\n' line 
+# endings (Unix files). Files are copied to their original file names with a
+# '.unix' suffix.
+#
+# Arguments:
+#
+# $*    Absolute paths to files to convert.
+#
+d2u() {
+  if [ $# - eq 0 ]; then
+     echo "Usage: $FUNCNAME FILE_NAME [FILE_NAME ...]"
+    return 1
+  fi
+    
+  for dos_file in $*; do
+    tr -d '\r' < $dos_file > ${dos_file}.unix
+  done
+}
+
+# copies the named file to the system clipboard
+#
+copyfile() {
+  if [ $# -eq 0 ]; then
+    echo "Usage: $FUNCNAME FILENAME"
+    return 1
+  fi
+  local file_to_copy=$1
+  pbcopy < $file_to_copy
+}
