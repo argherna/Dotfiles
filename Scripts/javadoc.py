@@ -212,10 +212,9 @@ if __name__ == '__main__':
             httpd.shutdown()
 
     except (getopt.error, ValueError):
-        print '''Serve javadoc from the local Maven repository
+        print '''%s [OPTION]
 
-Point your web browser to http://localhost:<port>/m2 for a list of all 
-Maven artifacts that have a javadoc jar file.
+Serve javadoc from the local Maven repository
 
 If you don't see javadoc for an artifact you expect to see, run these 
 commands from the base directory of your Maven project:
@@ -223,8 +222,7 @@ commands from the base directory of your Maven project:
     mvn dependency:sources
     mvn dependency:resolve -Dclassifier=javadoc
 
-Usage:
+Options:
 
-%s -p <port>
-    Start the HTTP server on this port. The default is 8080.
+ -p <port>  Start the HTTP server on this port. The default is 8080.
 ''' % (cmd)
