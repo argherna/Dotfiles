@@ -4,6 +4,9 @@
 javadoc.py
 
 Serves javadoc directly from javadoc jar files in local Maven repository.
+
+This tool was heavily inspired (and copied) by the code at 
+<https://gist.github.com/mgodave/5406999>.
 '''
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from mimetypes import types_map
@@ -226,3 +229,4 @@ Options:
 
  -p <port>  Start the HTTP server on this port. The default is 8080.
 ''' % (cmd)
+
