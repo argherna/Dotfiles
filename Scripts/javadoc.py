@@ -80,7 +80,7 @@ class IndexPage(object):
             links.append('<li><a href=\"m2/%s/%s/%s/index.html\">%s:%s:%s</a></li>' %
                          (group, artifact, version, group, artifact, version))
 
-        return """<html>
+        return '''<html>
     <head>
         <title>Available Javadoc</title>
     </head>
@@ -89,7 +89,7 @@ class IndexPage(object):
         <p><ul>
         %s</ul></p>
     </body>
-</html>""" % ('\n'.join(links))
+</html>''' % ('\n'.join(links))
 
     def _artifacts(self):
         '''
