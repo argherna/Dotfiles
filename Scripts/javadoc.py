@@ -69,7 +69,7 @@ class IndexPage(object):
         else:
             self.repo_dir = repo_dir
 
-    def outputIndex(self):
+    def output_index(self):
         links = list()
         for artifact in self._artifacts():
             parts = artifact.split('/')
@@ -117,7 +117,7 @@ class Handler(BaseHTTPRequestHandler):
             try:
                 if len(elements) == 0:
                     index = IndexPage()
-                    doc = index.outputIndex()
+                    doc = index.output_index()
                 else:
                     coordinates = dict(zip(('group',
                                             'artifact',
