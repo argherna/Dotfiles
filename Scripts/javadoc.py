@@ -5,7 +5,7 @@ javadoc.py
 
 Serves javadoc directly from javadoc jar files in local Maven repository.
 
-This tool was heavily inspired (and copied) by the code at 
+This tool was heavily inspired (and copied) by the code at
 <https://gist.github.com/mgodave/5406999>.
 '''
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
@@ -59,7 +59,7 @@ class ZippedJavadocContent(object):
 
 
 class IndexPageWriter(object):
-    ''' 
+    '''
     An index page if no group/artifact/version is specified in the path.
     '''
 
@@ -132,12 +132,12 @@ class Handler(BaseHTTPRequestHandler):
             except KeyError as key_error:
                 traceback.print_exc(file=sys.stdout)
                 if key_error.message.endswith('archive'):
-                    self._respond_with_404(elements[3:])
+                    self.__respond_with_404(elements[3:])
                 else:
-                    self._respond_with_400(elements)
+                    self.__respond_with_400(elements)
             except:
                 traceback.print_exc(file=sys.stdout)
-                self._respond_with_500()
+                self.__respond_with_500()
             else:
                 fname, ext = os.path.splitext(self.path)
                 if ext is '':
@@ -148,7 +148,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(doc)
 
-    def _respond_with_400(self, bad_path):
+    def __respond_with_400(self, bad_path):
         doc = '''<html>
     <head>
         <title>Bad Request</title>
@@ -164,7 +164,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(doc)
 
-    def _respond_with_404(self, bad_path):
+    def __respond_with_404(self, bad_path):
         doc = '''<html>
     <head>
         <title>Not Found</title>
@@ -179,7 +179,7 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(doc)
 
-    def _respond_with_500(self):
+    def __respond_with_500(self):
         doc = '''<html>
     <head>
         <title>Internal Server Error</title>
@@ -211,7 +211,7 @@ if __name__ == '__main__':
             print '%s server ready at http://localhost:%d/m2' % (cmd, port)
             httpd.serve_forever()
         except KeyboardInterrupt:
-            print 'Stopping server...'
+            print '%s server stopped' % (cmd)
             httpd.shutdown()
 
     except (getopt.error, ValueError):
@@ -219,7 +219,7 @@ if __name__ == '__main__':
 
 Serve javadoc from the local Maven repository
 
-If you don't see javadoc for an artifact you expect to see, run these 
+If you don't see javadoc for an artifact you expect to see, run these
 commands from the base directory of your Maven project:
 
     mvn dependency:sources
@@ -229,4 +229,3 @@ Options:
 
  -p <port>  Start the HTTP server on this port. The default is 8080.
 ''' % (cmd)
-
