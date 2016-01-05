@@ -63,15 +63,17 @@ class IndexPageWriter(object):
     An index page if no group/artifact/version is specified in the path.
     '''
 
-    def __init__(self, repo_dir="~/.m2/repository"):
+    def __init__(self, repo_dir='~/.m2/repository'):
         if repo_dir.startswith('~'):
             self.repo_dir = os.path.expanduser(repo_dir)
         else:
             self.repo_dir = repo_dir
 
     def __call__(self):
+        ''' Returns the index page as a string. '''
+
         links = list()
-        for artifact in self._artifacts():
+        for artifact in self.__artifacts():
             parts = artifact.split('/')
             version = parts.pop()
             artifact = parts.pop()
@@ -91,18 +93,16 @@ class IndexPageWriter(object):
     </body>
 </html>''' % ('\n'.join(links))
 
-    def _artifacts(self):
+    def __artifacts(self):
         '''
-        Returns a list of all javadoc jar artifacts in the local Maven
+        Returns a generator of all javadoc jar artifacts in the local Maven
         repository.
         '''
 
-        artifacts = list()
         for (path, dirs, files) in os.walk(self.repo_dir):
             files = [f for f in files if re.match('.*-javadoc.jar$', f)]
             if len(files) > 0:
-                artifacts.append(path.replace(self.repo_dir, ''))
-        return artifacts
+                yield path.replace(self.repo_dir, '')
 
 
 class Handler(BaseHTTPRequestHandler):
