@@ -49,7 +49,7 @@ class ZippedJavadocContent(object):
     def __enter__(self):
         return self
 
-    def get_content(self, path_to_file):
+    def __call__(self, path_to_file):
         return self.jar_file.read(path_to_file)
 
     def __exit__(self, exctype, excinst, exctb):
@@ -125,7 +125,7 @@ class Handler(BaseHTTPRequestHandler):
                     mvn_artifact = MavenRepositoryArtifact(coordinates)
                     with ZippedJavadocContent(mvn_artifact.path_to_artifact()) \
                             as javadoc:
-                        doc = javadoc.get_content('/'.join(elements[3:]))
+                        doc = javadoc('/'.join(elements[3:]))
             except IOError as io_error:
                 traceback.print_exc(file=sys.stdout)
                 self._respond_with_404(elements[3:])
