@@ -58,7 +58,7 @@ class ZippedJavadocContent(object):
         self.jar_file.close()
 
 
-class IndexPage(object):
+class IndexPageWriter(object):
     ''' 
     An index page if no group/artifact/version is specified in the path.
     '''
@@ -69,7 +69,7 @@ class IndexPage(object):
         else:
             self.repo_dir = repo_dir
 
-    def output_index(self):
+    def __call__(self):
         links = list()
         for artifact in self._artifacts():
             parts = artifact.split('/')
@@ -116,8 +116,8 @@ class Handler(BaseHTTPRequestHandler):
         if repo_type == 'm2':
             try:
                 if len(elements) == 0:
-                    index = IndexPage()
-                    doc = index.output_index()
+                    index = IndexPageWriter()
+                    doc = index()
                 else:
                     coordinates = dict(zip(('group',
                                             'artifact',
