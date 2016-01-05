@@ -18,8 +18,8 @@ import os
 import re
 
 
-class MavenRepositoryArtifact(object):
-    '''Abstraction of an artifact in the local Maven repository.'''
+class MavenRepositoryArtifactPath(object):
+    '''Abstraction of path to an artifact in the local Maven repository.'''
 
     def __init__(self, coordinates, basedir='~/.m2/repository'):
         if basedir.startswith('~'):
@@ -33,7 +33,7 @@ class MavenRepositoryArtifact(object):
                                        coordinates['version'],
                                        'javadoc.jar'))
 
-    def path_to_artifact(self):
+    def __call__(self):
         return '/'.join((self.basedir, self.group_path,
                          self.artifact_id,
                          self.version,
@@ -122,8 +122,8 @@ class Handler(BaseHTTPRequestHandler):
                     coordinates = dict(zip(('group',
                                             'artifact',
                                             'version'), elements))
-                    mvn_artifact = MavenRepositoryArtifact(coordinates)
-                    with ZippedJavadocContent(mvn_artifact.path_to_artifact()) \
+                    mvn_artifact = MavenRepositoryArtifactPath(coordinates)
+                    with ZippedJavadocContent(mvn_artifact()) \
                             as javadoc:
                         doc = javadoc('/'.join(elements[3:]))
             except IOError as io_error:
