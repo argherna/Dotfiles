@@ -1,13 +1,30 @@
 #!/usr/bin/env python
 
-'''
-javadoc.py
+'''NAME
+----
+    jdocd.py
 
-Serves javadoc directly from javadoc jar files in local Maven repository.
+SYNOPSIS
+--------
+    jdocd.py [OPTIONS]
 
-This tool was heavily inspired (and copied) by the code at
-<https://gist.github.com/mgodave/5406999>.
+OPTIONS
+-------
+    -p n, --port n
+        Start http server on port n (default 8080).
+
+DESCRIPTION
+-----------
+    Serves javadoc directly from javadoc jar files in local Maven repository.
+
+ACKNOWLEDGEMENTS
+----------------
+    This tool was heavily inspired (and copied) by `this gist
+    <https://gist.github.com/mgodave/5406999>`.
+
 '''
+from argparse import ArgumentParser
+from argparse import RawDescriptionHelpFormatter
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 from mimetypes import types_map
 from string import join
@@ -16,6 +33,16 @@ import sys
 import traceback
 import os
 import re
+
+DESC = 'Serve javadoc over HTTP from the local Maven repository'
+EPILOG = '''\
+If you don't see javadoc for an artifact you expect to see, run these
+commands from the base directory of your Maven project:
+
+    mvn dependency:sources
+    mvn dependency:resolve -Dclassifier=javadoc
+'''
+PORT = 8080
 
 
 class MavenRepositoryArtifactPath(object):
@@ -109,6 +136,7 @@ class Handler(BaseHTTPRequestHandler):
     ''' Serves the javadoc html and css files '''
 
     def do_GET(self):
+        ''' Handles HTTP GET requests by serving content from the `/m2` path.'''
         self.protocol_version = 'HTTP/1.1'
         path_elements = self.path.split('/')
         (repo_type, elements) = path_elements[1], path_elements[2:]
@@ -197,35 +225,18 @@ class Handler(BaseHTTPRequestHandler):
 
 if __name__ == '__main__':
 
-    import getopt
+    arg_parser = ArgumentParser(
+        description=DESC, epilog=EPILOG, formatter_class=RawDescriptionHelpFormatter)
+    arg_parser.add_argument('-p', '--port', metavar='n', default=PORT, nargs=1, type=int,
+                            help='Port number the HTTP server is listening on (default is %d)' % (PORT))
+
+    cli_args = arg_parser.parse_args()
+    port = cli_args.port[0]
+    cmd = arg_parser.prog
+    httpd = HTTPServer(('localhost', port), Handler)
     try:
-        cmd = os.path.basename(sys.argv[0])
-        port = 8080
-        opts, args = getopt.getopt(sys.argv[1:], 'p:')
-        for opt, val in opts:
-            if opt == '-p':
-                port = int(val)
-
-        httpd = HTTPServer(('localhost', port), Handler)
-        try:
-            print '%s server ready at http://localhost:%d/m2' % (cmd, port)
-            httpd.serve_forever()
-        except KeyboardInterrupt:
-            print '%s server stopped' % (cmd)
-            httpd.shutdown()
-
-    except (getopt.error, ValueError):
-        print '''%s [OPTION]
-
-Serve javadoc from the local Maven repository
-
-If you don't see javadoc for an artifact you expect to see, run these
-commands from the base directory of your Maven project:
-
-    mvn dependency:sources
-    mvn dependency:resolve -Dclassifier=javadoc
-
-Options:
-
- -p <port>  Start the HTTP server on this port. The default is 8080.
-''' % (cmd)
+        print '%s server ready at http://localhost:%d/m2' % (cmd, port)
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        httpd.shutdown()
+        print '%s server stopped' % (cmd)
