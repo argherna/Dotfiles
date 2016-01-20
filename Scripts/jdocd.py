@@ -231,7 +231,12 @@ if __name__ == '__main__':
                             help='Port number the HTTP server is listening on (default is %d)' % (PORT))
 
     cli_args = arg_parser.parse_args()
-    port = cli_args.port[0]
+
+    if isinstance(cli_args.port, list):
+        port = cli_args.port[0]
+    else:
+        port = cli_args.port
+        
     cmd = arg_parser.prog
     httpd = HTTPServer(('localhost', port), Handler)
     try:
