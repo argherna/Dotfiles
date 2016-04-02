@@ -236,7 +236,7 @@ if __name__ == '__main__':
         port = cli_args.port[0]
     else:
         port = cli_args.port
-        
+
     cmd = arg_parser.prog
     httpd = HTTPServer(('localhost', port), Handler)
     try:
