@@ -43,7 +43,12 @@ commands from the base directory of your Maven project:
     mvn dependency:resolve -Dclassifier=javadoc
 '''
 PORT = 8080
-
+OTHER_TYPES = {'.svg':'image/svg+xml',
+               '.woff': 'application/x-font-woff',
+               '.eot': 'application/vnd.ms-fontobject',
+               '.ttf': 'application/octet-stream',
+               '.otf': 'application/octet-stream'}
+REPO_TYPES = ['jdk', 'm2']
 
 class MavenRepositoryArtifactPath(object):
     '''Abstraction of path to an artifact in the local Maven repository.'''
@@ -99,6 +104,7 @@ class IndexPageWriter(object):
     def __call__(self):
         ''' Returns the index page as a string. '''
 
+        jdk_api = '<li><a href="jdoc/jdk/docs/api/index.html">Java API</a></li>'
         links = list()
         for artifact in self.__artifacts():
             parts = artifact.split('/')
@@ -106,7 +112,7 @@ class IndexPageWriter(object):
             artifact = parts.pop()
             parts.pop(0)
             group = '.'.join(parts)
-            links.append('<li><a href=\"m2/%s/%s/%s/index.html\">%s:%s:%s</a></li>' %
+            links.append('<li><a href=\"jdoc/m2/%s/%s/%s/index.html\">%s:%s:%s</a></li>' %
                          (group, artifact, version, group, artifact, version))
 
         return '''<html>
@@ -115,10 +121,14 @@ class IndexPageWriter(object):
     </head>
     <body>
         <h1>Available Local Javadoc</h1>
+        <h2>JDK API</h2>
+        <p><ul>
+        %s</ul></p>
+        <h2>Maven Repository</h2>
         <p><ul>
         %s</ul></p>
     </body>
-</html>''' % ('\n'.join(links))
+</html>''' % (jdk_api, '\n'.join(links))
 
     def __artifacts(self):
         '''
@@ -136,45 +146,67 @@ class Handler(BaseHTTPRequestHandler):
     ''' Serves the javadoc html and css files '''
 
     def do_GET(self):
-        ''' Handles HTTP GET requests by serving content from the `/m2` path.'''
+        ''' Handles HTTP GET requests by serving content from the `/jdoc` path.'''
         self.protocol_version = 'HTTP/1.1'
         path_elements = self.path.split('/')
-        (repo_type, elements) = path_elements[1], path_elements[2:]
-        archive_path = None
-        if repo_type == 'm2':
-            try:
+        try:
+            if len(path_elements) == 2:
+                index = IndexPageWriter()
+                doc = index()
+            else:
+                (repo_type, elements) = path_elements[2], path_elements[3:]
+                archive_path = None
+                doc_archive = None
+                doc_path = None
+
+                if repo_type not in REPO_TYPES:
+                    raise IOError
+
                 if len(elements) == 0:
                     index = IndexPageWriter()
                     doc = index()
                 else:
-                    coordinates = dict(zip(('group',
-                                            'artifact',
-                                            'version'), elements))
-                    mvn_artifact = MavenRepositoryArtifactPath(coordinates)
-                    with ZippedJavadocContent(mvn_artifact()) \
-                            as javadoc:
-                        doc = javadoc('/'.join(elements[3:]))
-            except IOError as io_error:
-                traceback.print_exc(file=sys.stdout)
-                self._respond_with_404(elements[3:])
-            except KeyError as key_error:
-                traceback.print_exc(file=sys.stdout)
-                if key_error.message.endswith('archive'):
-                    self.__respond_with_404(elements[3:])
-                else:
-                    self.__respond_with_400(elements)
-            except:
-                traceback.print_exc(file=sys.stdout)
-                self.__respond_with_500()
+                    if repo_type == 'm2':
+                        coordinates = dict(zip(('group',
+                                                'artifact',
+                                                'version'), elements))
+                        mvn_artifact = MavenRepositoryArtifactPath(coordinates)
+                        doc_archive = mvn_artifact()
+                        doc_path = '/'.join(elements[3:])
+                    elif repo_type == 'jdk':
+                        doc_archive = '/usr/lib/jvm/java-8-openjdk-amd64/jdk-8u77-docs-all.zip'
+                        doc_path = '/'.join(elements)
+                    else:
+                        raise IOError
+
+                    with ZippedJavadocContent(doc_archive) as javadoc:
+                        doc = javadoc(doc_path)
+        except IOError as io_error:
+            traceback.print_exc(file=sys.stdout)
+            self.__respond_with_404(elements[4:])
+        except KeyError as key_error:
+            traceback.print_exc(file=sys.stdout)
+            if key_error.message.endswith('archive'):
+                self.__respond_with_404(elements[4:])
             else:
-                fname, ext = os.path.splitext(self.path)
-                if ext is '':
-                    ext = '.html'
-                self.send_response(200)
+                self.__respond_with_400(elements)
+        except:
+            traceback.print_exc(file=sys.stdout)
+            self.__respond_with_500()
+        else:
+            fname, ext = os.path.splitext(self.path)
+            if ext is '':
+                ext = '.html'
+            self.send_response(200)
+            if ext in types_map:
                 self.send_header('Content-Type', types_map[ext])
-                self.send_header('Content-Length', len(doc))
-                self.end_headers()
-                self.wfile.write(doc)
+            elif ext in OTHER_TYPES:
+                self.send_header('Content-Type', OTHER_TYPES[ext])
+            else:
+                print 'Warning! %s not a MIME type' % (ext)
+            self.send_header('Content-Length', len(doc))
+            self.end_headers()
+            self.wfile.write(doc)
 
     def __respond_with_400(self, bad_path):
         doc = '''<html>
@@ -240,7 +272,7 @@ if __name__ == '__main__':
     cmd = arg_parser.prog
     httpd = HTTPServer(('localhost', port), Handler)
     try:
-        print '%s server ready at http://localhost:%d/m2' % (cmd, port)
+        print '%s server ready at http://localhost:%d/jdoc' % (cmd, port)
         httpd.serve_forever()
     except KeyboardInterrupt:
         httpd.shutdown()
