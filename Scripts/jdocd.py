@@ -72,6 +72,16 @@ class MavenRepositoryArtifactPath(object):
                          self.artifact_name))
 
 
+class JdkDocsArtifactPath(object):
+    '''Abstraction of path to the artifact of the JDK API documentation'''
+
+    def __init__(self, artifact='/usr/lib/jvm/java-8-openjdk-amd64/jdk-8u77-docs-all.zip'):
+        self.artifact = artifact
+
+    def __call__(self):
+        return self.artifact
+
+
 class ZippedJavadocContent(object):
     '''Reads content from the jar (zip) file'''
 
@@ -142,8 +152,12 @@ class IndexPageWriter(object):
                 yield path.replace(self.repo_dir, '')
 
 
-class Handler(BaseHTTPRequestHandler):
+class DocsHandler(BaseHTTPRequestHandler):
     ''' Serves the javadoc html and css files '''
+
+    def __init__(self, jdkdocs, *args):
+        self.jdkdocs = jdkdocs
+        BaseHTTPRequestHandler.__init__(self, *args)
 
     def do_GET(self):
         ''' Handles HTTP GET requests by serving content from the `/jdoc` path.'''
@@ -174,7 +188,11 @@ class Handler(BaseHTTPRequestHandler):
                         doc_archive = mvn_artifact()
                         doc_path = '/'.join(elements[3:])
                     elif repo_type == 'jdk':
-                        doc_archive = '/usr/lib/jvm/java-8-openjdk-amd64/jdk-8u77-docs-all.zip'
+                        if self.jdkdocs is None:
+                            jdk_docs = JdkDocsArtifactPath()
+                        else:
+                            jdk_docs = JdkDocsArtifactPath(self.jdkdocs)
+                        doc_archive = jdk_docs()
                         doc_path = '/'.join(elements)
                     else:
                         raise IOError
@@ -214,9 +232,7 @@ class Handler(BaseHTTPRequestHandler):
         <title>Bad Request</title>
     </head>
     <body>
-        <h1>Error - %s path is incomplete</h1>
-        <p>URL paths must consist of <code>group/artifact/version</code>.</p>
-    </body>
+        <h1>Error - %s path is incomplete</h1>port
 </html>''' % ('/'.join(bad_path))
         self.send_response(400)
         self.send_header('Content-Type', 'text/html')
@@ -255,14 +271,28 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(doc)
 
+def custom_docs_handler(jdkdocs):
+    return lambda *args: DocsHandler(jdkdocs, *args)
+
+
 if __name__ == '__main__':
 
     arg_parser = ArgumentParser(
         description=DESC, epilog=EPILOG, formatter_class=RawDescriptionHelpFormatter)
+    arg_parser.add_argument('-j', '--jdkdocs', metavar='filename', nargs=1, type=str,
+        help='Custom location of file with JDK API docs')
     arg_parser.add_argument('-p', '--port', metavar='n', default=PORT, nargs=1, type=int,
-                            help='Port number the HTTP server is listening on (default is %d)' % (PORT))
+        help='Port number the HTTP server is listening on (default is %d)' % (PORT))
 
     cli_args = arg_parser.parse_args()
+
+    if cli_args.jdkdocs is None:
+        jdkdocs = None
+    else:
+        if isinstance(cli_args.jdkdocs, list):
+            jdkdocs = cli_args.jdkdocs[0]
+        else:
+            jdkdocs = cli_args.jdkdocs
 
     if isinstance(cli_args.port, list):
         port = cli_args.port[0]
@@ -270,7 +300,8 @@ if __name__ == '__main__':
         port = cli_args.port
 
     cmd = arg_parser.prog
-    httpd = HTTPServer(('localhost', port), Handler)
+
+    httpd = HTTPServer(('localhost', port), custom_docs_handler(jdkdocs))
     try:
         print '%s server ready at http://localhost:%d/jdoc' % (cmd, port)
         httpd.serve_forever()
