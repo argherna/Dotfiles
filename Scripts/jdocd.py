@@ -13,6 +13,10 @@ OPTIONS
     -p n, --port n
         Start http server on port n (default 8080).
 
+    -j filename, --jdkdocs filename
+        Name of the (zip) file that contains the Java API documentation (default
+        is /usr/lib/jvm/java-8-openjdk-amd64/jdk-8u77-docs-all.zip).
+
 DESCRIPTION
 -----------
     Serves javadoc directly from javadoc jar files in local Maven repository.
