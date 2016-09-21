@@ -13,10 +13,6 @@ OPTIONS
     -p n, --port n
         Start http server on port n (default 8080).
 
-    -j filename, --jdkdocs filename
-        Name of the (zip) file that contains the Java API documentation (default
-        is /usr/lib/jvm/java-8-openjdk-amd64/jdk-8u77-docs-all.zip).
-
 DESCRIPTION
 -----------
     Serves javadoc directly from javadoc jar files in local Maven repository.
@@ -159,7 +155,7 @@ class IndexPageWriter(object):
 class DocsHandler(BaseHTTPRequestHandler):
     ''' Serves the javadoc html and css files '''
 
-    def __init__(self, jdkdocs, *args):
+    def __init__(self, jdkdocs, quiet, *args):
         self.jdkdocs = jdkdocs
         self.quiet = quiet
         BaseHTTPRequestHandler.__init__(self, *args)
@@ -237,7 +233,9 @@ class DocsHandler(BaseHTTPRequestHandler):
         <title>Bad Request</title>
     </head>
     <body>
-        <h1>Error - %s path is incomplete</h1>port
+        <h1>Error - %s path is incomplete</h1>
+        <p>URL paths must consist of <code>group/artifact/version</code>.</p>
+    </body>
 </html>''' % ('/'.join(bad_path))
         self.send_response(400)
         self.send_header('Content-Type', 'text/html')
@@ -285,7 +283,6 @@ class DocsHandler(BaseHTTPRequestHandler):
 def custom_docs_handler(jdkdocs, quiet):
     return lambda *args: DocsHandler(jdkdocs, quiet, *args)
 
-
 if __name__ == '__main__':
 
     arg_parser = ArgumentParser(
@@ -294,7 +291,7 @@ if __name__ == '__main__':
         help='Custom location of file with JDK API docs')
     arg_parser.add_argument('-p', '--port', metavar='n', default=PORT, nargs=1, type=int,
         help='Port number the HTTP server is listening on (default is %d)' % (PORT))
-    arg_parser.add_argument('-q', '--quiet', action=store_true)
+    arg_parser.add_argument('-q', '--quiet', dest='quiet', action='store_true')
 
     cli_args = arg_parser.parse_args()
 
@@ -312,7 +309,6 @@ if __name__ == '__main__':
         port = cli_args.port
 
     cmd = arg_parser.prog
-
     httpd = HTTPServer(('localhost', port), custom_docs_handler(jdkdocs, cli_args.quiet))
     try:
         print '%s server ready at http://localhost:%d/jdoc' % (cmd, port)
