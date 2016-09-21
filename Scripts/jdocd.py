@@ -161,6 +161,7 @@ class DocsHandler(BaseHTTPRequestHandler):
 
     def __init__(self, jdkdocs, *args):
         self.jdkdocs = jdkdocs
+        self.quiet = quiet
         BaseHTTPRequestHandler.__init__(self, *args)
 
     def do_GET(self):
@@ -275,8 +276,14 @@ class DocsHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(doc)
 
-def custom_docs_handler(jdkdocs):
-    return lambda *args: DocsHandler(jdkdocs, *args)
+    def log_message(self, format, *args):
+        if self.quiet:
+            return
+        else:
+            return BaseHTTPRequestHandler.log_message(self, format, *args)
+
+def custom_docs_handler(jdkdocs, quiet):
+    return lambda *args: DocsHandler(jdkdocs, quiet, *args)
 
 
 if __name__ == '__main__':
@@ -287,6 +294,7 @@ if __name__ == '__main__':
         help='Custom location of file with JDK API docs')
     arg_parser.add_argument('-p', '--port', metavar='n', default=PORT, nargs=1, type=int,
         help='Port number the HTTP server is listening on (default is %d)' % (PORT))
+    arg_parser.add_argument('-q', '--quiet', action=store_true)
 
     cli_args = arg_parser.parse_args()
 
@@ -305,7 +313,7 @@ if __name__ == '__main__':
 
     cmd = arg_parser.prog
 
-    httpd = HTTPServer(('localhost', port), custom_docs_handler(jdkdocs))
+    httpd = HTTPServer(('localhost', port), custom_docs_handler(jdkdocs, cli_args.quiet))
     try:
         print '%s server ready at http://localhost:%d/jdoc' % (cmd, port)
         httpd.serve_forever()
