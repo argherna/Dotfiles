@@ -145,6 +145,10 @@ class IndexPageWriter(object):
 class Handler(BaseHTTPRequestHandler):
     ''' Serves the javadoc html and css files '''
 
+    def __init__(self, quiet, *args):
+        self.quiet = quiet
+        BaseHTTPRequestHandler.__init__(self, *args)
+
     def do_GET(self):
         ''' Handles HTTP GET requests by serving content from the `/jdoc` path.'''
         self.protocol_version = 'HTTP/1.1'
@@ -174,7 +178,7 @@ class Handler(BaseHTTPRequestHandler):
                         doc_archive = mvn_artifact()
                         doc_path = '/'.join(elements[3:])
                     elif repo_type == 'jdk':
-                        doc_archive = '/usr/lib/jvm/java-8-openjdk-amd64/jdk-8u77-docs-all.zip'
+                        doc_archive = '/Library/Java/JavaVirtualMachines/jdk1.8.0_74.jdk/Contents/Home/jdk-8u74-docs-all.zip'
                         doc_path = '/'.join(elements)
                     else:
                         raise IOError
@@ -255,12 +259,23 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(doc)
 
+    def log_message(self, format, *args):
+        if self.quiet:
+            return
+        else:
+            return BaseHTTPRequestHandler.log_message(self, format, *args)
+
+def create_handler(quiet):
+    '''Sets up the handler to be quiet or not'''
+    return lambda *args: Handler(quiet, *args)
+
 if __name__ == '__main__':
 
     arg_parser = ArgumentParser(
         description=DESC, epilog=EPILOG, formatter_class=RawDescriptionHelpFormatter)
     arg_parser.add_argument('-p', '--port', metavar='n', default=PORT, nargs=1, type=int,
                             help='Port number the HTTP server is listening on (default is %d)' % (PORT))
+    arg_parser.add_argument('-q', '--quiet', dest='quiet', action='store_true')
 
     cli_args = arg_parser.parse_args()
 
@@ -270,7 +285,9 @@ if __name__ == '__main__':
         port = cli_args.port
 
     cmd = arg_parser.prog
-    httpd = HTTPServer(('localhost', port), Handler)
+    request_handler = create_handler(cli_args.quiet)
+
+    httpd = HTTPServer(('localhost', port), request_handler)
     try:
         print '%s server ready at http://localhost:%d/jdoc' % (cmd, port)
         httpd.serve_forever()
