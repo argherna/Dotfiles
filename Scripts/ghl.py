@@ -97,8 +97,8 @@ def save_label(label, repo_owner, repo_name, auth):
     label_json = json.dumps(label)
     req_url = labels_request_url(repo_owner, repo_name)
     r = requests.post(req_url, auth=auth, data=label_json)
-    if r.status_code != 200:
-        raise GitHubUnsuccessError('Failed to update label %s' % (label['name']))
+    if r.status_code != 201:
+        raise GitHubUnsuccessError('Failed to update label %s (%d)' % (label['name'], r.status_code))
 
 
 def update_label(label, repo_owner, repo_name, auth):
