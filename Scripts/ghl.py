@@ -233,7 +233,7 @@ if __name__ == '__main__':
         elif cli_args.command_to_execute == 'delete':
             delete_main(cli_args)
         else:
-            sys.stderr.write 'Unknown function!'
+            sys.stderr.write('Unknown function!')
             sys.exit(1)
     except GitHubUnsuccessError, (message):
         sys.stderr.write('%s Exiting!\n' % (message))
