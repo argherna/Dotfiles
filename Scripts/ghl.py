@@ -57,9 +57,7 @@ def get_auth(auth):
 
 def read_labels(infile):
     '''Returns the list of labels from the given filename'''
-    labels = None
-    labels = json.loads(infile.read())
-    return labels
+    return json.loads(infile.read())
 
 
 def label_request_url(repo_owner, repo_name, label_name):
@@ -89,7 +87,8 @@ def delete_label(label, repo_owner, repo_name, auth):
     req_url = label_request_url(repo_owner, repo_name, label['name'])
     r = requests.delete(req_url, auth=auth)
     if r.status_code != 204:
-        raise GitHubUnsuccessError('Failed to delete label %s' % (label['name']))
+        raise GitHubUnsuccessError(
+            'Failed to delete label %s' % (label['name']))
 
 
 def save_label(label, repo_owner, repo_name, auth):
@@ -98,7 +97,8 @@ def save_label(label, repo_owner, repo_name, auth):
     req_url = labels_request_url(repo_owner, repo_name)
     r = requests.post(req_url, auth=auth, data=label_json)
     if r.status_code != 201:
-        raise GitHubUnsuccessError('Failed to update label %s (%d)' % (label['name'], r.status_code))
+        raise GitHubUnsuccessError(
+            'Failed to update label %s (%d)' % (label['name'], r.status_code))
 
 
 def update_label(label, repo_owner, repo_name, auth):
@@ -107,12 +107,13 @@ def update_label(label, repo_owner, repo_name, auth):
     req_url = label_request_url(repo_owner, repo_name, label['name'])
     r = requests.patch(req_url, auth=auth, data=label_json)
     if r.status_code != 200:
-        raise GitHubUnsuccessError('Failed to update label %s' % (label['name']))
+        raise GitHubUnsuccessError(
+            'Failed to update label %s' % (label['name']))
 
 
 def delete_main(cli_args):
     '''Deletes the list of GitHub labels.'''
-    labels =  read_labels(cli_args.infile)
+    labels = read_labels(cli_args.infile)
     auth = (get_auth(cli_args.auth[0]))
     for label in labels:
         if label_exists(label['name'],
@@ -167,12 +168,12 @@ if __name__ == '__main__':
     parser = ArgumentParser(description=DESC, epilog=EPILOG,
                             formatter_class=RawDescriptionHelpFormatter)
     parser.add_argument('-a', '--auth', nargs=1, type=str,
-                          metavar='USER[:PASS]',
-                          help='Basic authentication credentials')
+                        metavar='USER[:PASS]',
+                        help='Basic authentication credentials')
     parser.add_argument('-l', '--log', nargs=1, type=str,
-                          metavar='DEBUG|INFO|WARNING|ERROR|CRITICAL',
-                          default='WARNING',
-                          help='Set logging level (default is WARNING)')
+                        metavar='DEBUG|INFO|WARNING|ERROR|CRITICAL',
+                        default='WARNING',
+                        help='Set logging level (default is WARNING)')
 
     subparsers = parser.add_subparsers(dest='command_to_execute',
                                        description='GitHub label commands',
@@ -223,7 +224,8 @@ if __name__ == '__main__':
     cli_args = parser.parse_args()
 
     numeric_level = getattr(logging, cli_args.log[0].upper(), None)
-    logging.basicConfig(format='%(levelname)s: %(message)s', level=numeric_level)
+    logging.basicConfig(format='%(levelname)s: %(message)s',
+                        level=numeric_level)
 
     try:
         if cli_args.command_to_execute == 'list':
