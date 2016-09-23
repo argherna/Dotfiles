@@ -35,7 +35,10 @@ https://github.com/settings/tokens and use it for your password.
 class GitHubUnsuccessError(Exception):
     '''
     Maybe GitHub didn't fail. Maybe YOU did. Maybe this script did. Either
-    way, the call was unsuccessful.
+    way, this error means the call to the GitHub API was not successful. We
+    can usually blame the caller since this error is raised only when the API
+    returns a non-successful call.
+    See https://developer.github.com/v3/
     '''
     pass
 
@@ -55,11 +58,6 @@ def get_auth(auth):
     return user, password
 
 
-def read_labels(infile):
-    '''Returns the list of labels from the given filename'''
-    return json.loads(infile.read())
-
-
 def label_request_url(repo_owner, repo_name, label_name):
     '''Returns a URL suitable for reading, updating, and deleting a single label.'''
     return 'https://api.github.com/repos/%s/%s/labels/%s' % (repo_owner, repo_name, urllib.quote(label_name))
@@ -75,11 +73,6 @@ def label_exists(label_name, repo_owner, repo_name, auth):
     req_url = label_request_url(repo_owner, repo_name, label_name)
     r = requests.head(req_url, auth=auth)
     return r.status_code == 200
-
-
-def write_output(json_dat, outfile):
-    '''Writes data to the specified output file.'''
-    print >>outfile, json.dumps(json_dat, sort_keys=True, indent=2)
 
 
 def delete_label(label, repo_owner, repo_name, auth):
@@ -113,9 +106,8 @@ def update_label(label, repo_owner, repo_name, auth):
 
 def delete_main(cli_args):
     '''Deletes the list of GitHub labels.'''
-    labels = read_labels(cli_args.infile)
     auth = (get_auth(cli_args.auth[0]))
-    for label in labels:
+    for label in json.loads(cli_args.infile.read()):
         if label_exists(label['name'],
                         cli_args.repository_owner[0],
                         cli_args.repository_name[0],
@@ -140,15 +132,13 @@ def list_main(cli_args):
         for label in labels:
             label.pop('url', None)
 
-    write_output(labels, cli_args.outfile)
+    print >>cli_args.outfile, json.dumps(labels, sort_keys=True, indent=2)
 
 
 def upload_main(cli_args):
     '''Uploads the list of labels from input.'''
-    labels = read_labels(cli_args.infile)
-
     auth = (get_auth(cli_args.auth[0]))
-    for label in labels:
+    for label in json.loads(cli_args.infile.read()):
         if label_exists(label['name'],
                         cli_args.repository_owner[0],
                         cli_args.repository_name[0],
