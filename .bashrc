@@ -1,25 +1,14 @@
 # ------------------------------------------------------------------------------
 #
-# ~/.bashrc 
+# ~/.bashrc
 #
 # executed by bash(1) for non-login shells.
-# 
+#
 # ------------------------------------------------------------------------------
 
 # If not running interactively, don't do anything
 #
 [ -z "$PS1" ] && return
-
-
-# ------------------------------------------------------------------------------
-#
-#                         Source important stuff first
-#
-# ------------------------------------------------------------------------------
-
-if [ -f ~/.bash/.bash_preinit ]; then
-  . ~/.bash/.bash_preinit
-fi
 
 
 # ------------------------------------------------------------------------------
@@ -34,7 +23,8 @@ fi
 export HISTFILESIZE=100000000
 export HISTSIZE=100000
 export HISTCONTROL=ignoredups:ignorespace
-export EDITOR=$EMACS_CLIENT
+export EDITOR=/usr/bin/vim
+
 
 # ------------------------------------------------------------------------------
 #
@@ -78,6 +68,20 @@ CYAN=$'\033[1;36m'
 WHITE=$'\033[1;37m'
 NONE=$'\033[m'
 
+# Colorized man pages from
+# http://boredzo.org/blog/archives/2016-08-15/colorized-man-pages-understood-and-customized
+#
+man() {
+    env \
+        LESS_TERMCAP_md=$'\e[1;36m' \
+        LESS_TERMCAP_me=$'\e[0m' \
+        LESS_TERMCAP_se=$'\e[0m' \
+        LESS_TERMCAP_so=$'\e[1;40;92m' \
+        LESS_TERMCAP_ue=$'\e[0m' \
+        LESS_TERMCAP_us=$'\e[1;32m' \
+            man "$@"
+}
+
 # uncomment for a colored prompt, if the terminal has the capability; turned
 # off by default to not distract the user: the focus in a terminal window
 # should be on the output of commands, not on the prompt
@@ -100,7 +104,7 @@ fi
 # }
 
 # export PS1="[33[00m]u@h[33[01;34m] W [33[31m]$(parse_git_branch) [33[00m]$[33[00m] "
- 
+
 
 if [ "$color_prompt" = yes ]; then
     PS1='${debian_chroot:+($debian_chroot)}\[\033[01;32m\]\u@\h\[\033[00m\]:\[\033[01;34m\]\w\[\033[00m\]\$ '
@@ -132,4 +136,11 @@ fi
 # sources /etc/bash.bashrc).
 if [ -f /etc/bash_completion ] && ! shopt -oq posix; then
     . /etc/bash_completion
+fi
+
+# with brew...
+if [[ -x /usr/local/bin/brew ]]; then
+    if [ -f $(brew --prefix)/etc/bash_completion ]; then
+        . $(brew --prefix)/etc/bash_completion
+    fi
 fi

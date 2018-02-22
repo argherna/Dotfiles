@@ -1,6 +1,6 @@
 [user]
 	name = Andy Gherna
-	email = agherna@illinois.edu
+	email = argherna@gmail.com
 	signingkey = argherna@gmail.com
 [alias]
 	st = status
@@ -16,18 +16,25 @@
 	lg = log --color --graph --pretty='format:%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue) <%an>%Creset' --abbrev-commit
 	tlog = log --stat --since='1 Day Ago' --graph --pretty=oneline --abbrev-commit --date=relative
 	rank = shortlog -sn --no-merges
-    branches = branch -a
-    tags = tag
-    stashes = stash list
-    discard = checkout --
-    uncommit = reset --mixed HEAD~
-    amend = commit --amend
-    graph = log --graph -10 --branches --remotes --tags  --format=format:'%Cgreen%h %Creset• %<(75,trunc)%s (%cN, %cr) %Cred%d' --date-order
-    precommit = diff --cached --diff-algorithm=minimal -w
+	branches = branch -a
+	tags = tag
+	stashes = stash list
+	discard = checkout --
+	uncommit = reset --mixed HEAD~
+	amend = commit --amend
+	graph = log --graph -10 --branches --remotes --tags	--format=format:'%Cgreen%h %Creset• %<(75,trunc)%s (%cN, %cr) %Cred%d' --date-order
+	precommit = diff --cached --diff-algorithm=minimal -w
+	mvbranch = branch -m
+	showremote = remote -v
 [push]
 	default = simple
 [core]
 	excludesfile = /Users/agherna/.gitignore_global
+	editor = code --wait
+[diff]
+    tool = default-difftool
+[difftool "default-difftool"]
+    cmd = code --wait --diff $LOCAL $REMOTE
 [difftool "sourcetree"]
 	cmd = opendiff \"$LOCAL\" \"$REMOTE\"
 	path = 
@@ -39,4 +46,4 @@
 	smudge = git lfs smudge %f
 	required = true
 [commit]
-	template = /Users/agherna/.git_commit_msg.txt
+	#template = /Users/agherna/.git_commit_msg.txt
