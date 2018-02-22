@@ -1,49 +1,50 @@
 [user]
-	name = Andy Gherna
-	email = argherna@gmail.com
-	signingkey = argherna@gmail.com
+	name          = Andy Gherna
+	email         = argherna@gmail.com
+	signingkey    = argherna@gmail.com
 [alias]
-	st = status
-	ci = commit
-	co = checkout
-	br = branch
-	hist = log --pretty=format:\"%h %ad | %s%d [%an]\" --graph --date=short
-	type = cat-file -t
-	dump = cat-file -p
-	ignore = "!gi() { curl -L -s https://www.gitignore.io/api/$@ ;}; gi"
-	unstage = reset -q HEAD --
-	plog = log --graph --pretty='format:%C(red)%d%C(reset) %C(yellow)%h%C(reset) %ar %C(green)%aN%C(reset) %s'
-	lg = log --color --graph --pretty='format:%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue) <%an>%Creset' --abbrev-commit
-	tlog = log --stat --since='1 Day Ago' --graph --pretty=oneline --abbrev-commit --date=relative
-	rank = shortlog -sn --no-merges
-	branches = branch -a
-	tags = tag
-	stashes = stash list
-	discard = checkout --
-	uncommit = reset --mixed HEAD~
-	amend = commit --amend
-	graph = log --graph -10 --branches --remotes --tags	--format=format:'%Cgreen%h %Creset• %<(75,trunc)%s (%cN, %cr) %Cred%d' --date-order
-	precommit = diff --cached --diff-algorithm=minimal -w
-	mvbranch = branch -m
-	showremote = remote -v
+	amend         = commit --amend
+	br            = branch
+	branches      = branch -a
+	ci            = commit
+	co            = checkout
+	discard       = checkout --
+	dump          = cat-file -p
+	graph         = log --graph -10 --branches --remotes --tags	--format=format:'%Cgreen%h %Creset• %<(75,trunc)%s (%cN, %cr) %Cred%d' --date-order
+	hist          = log --pretty=format:\"%h %ad | %s%d [%an]\" --graph --date=short
+	ignore        = "!gi() { curl -L -s https://www.gitignore.io/api/$@ ;}; gi"
+	lg            = log --color --graph --pretty='format:%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue) <%an>%Creset' --abbrev-commit
+	mvbranch      = branch -m
+	plog          = log --graph --pretty='format:%C(red)%d%C(reset) %C(yellow)%h%C(reset) %ar %C(green)%aN%C(reset) %s'
+	precommit     = diff --cached --diff-algorithm=minimal -w
+	rank          = shortlog -sn --no-merges
+	showaliases   = !git config --get-regexp alias | sort | cut -c 7-
+	showremote    = remote -v
+	st            = status
+	stashes       = stash list
+	tags          = tag
+	tlog          = log --stat --since='1 Day Ago' --graph --pretty=oneline --abbrev-commit --date=relative
+	type          = cat-file -t
+	uncommit      = reset --mixed HEAD~
+	unstage       = reset -q HEAD --
 [push]
-	default = simple
+	default       = simple
 [core]
-	excludesfile = /Users/agherna/.gitignore_global
-	editor = code --wait
+	excludesfile  = /Users/agherna/.gitignore_global
+	editor        = code --wait
 [diff]
-    tool = default-difftool
+    tool          = default-difftool
 [difftool "default-difftool"]
-    cmd = code --wait --diff $LOCAL $REMOTE
+    cmd           = code --wait --diff $LOCAL $REMOTE
 [difftool "sourcetree"]
-	cmd = opendiff \"$LOCAL\" \"$REMOTE\"
-	path = 
+	cmd           = opendiff \"$LOCAL\" \"$REMOTE\"
+	path          = 
 [mergetool "sourcetree"]
-	cmd = /Applications/SourceTree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
+	cmd           = /Applications/SourceTree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
 	trustExitCode = true
 [filter "lfs"]
-	clean = git lfs clean %f
-	smudge = git lfs smudge %f
-	required = true
+	clean         = git lfs clean %f
+	smudge        = git lfs smudge %f
+	required      = true
 [commit]
 	#template = /Users/agherna/.git_commit_msg.txt
