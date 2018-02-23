@@ -2,7 +2,7 @@
 
 # ------------------------------------------------------------------------------
 #
-# set_current_java
+# set-current-java.sh
 #
 # Creates a symlink to the specified version of the JDK. The symlink is 
 # in $HOME/java and it's named 'current'. Note: $HOME/java/current is set on the

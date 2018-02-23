@@ -24,8 +24,8 @@ elif [ "$KERNEL" == "Darwin" ]; then
   #
   alias tmux='tmux -f ~/.osx.tmux.conf'
 
-  if [ -f ~/Scripts/MacOSX_functions ]; then
-    . ~/Scripts/MacOSX_functions
+  if [ -f ~/Scripts/macos-functions.sh ]; then
+    . ~/Scripts/macos-functions.sh
   fi
 fi
 
@@ -366,14 +366,6 @@ print urllib.unquote_plus('${1}')
 sys.exit(0)"
 }
 
-# b64_decode() {
-#   openssl base64 -d <<< "$1"
-# }
-
-# b64_encode() {
-#   openssl base64 -e <<< "$1"
-# }
-
 headers() {
 
   if [[ $# -lt 1 ]]; then
@@ -424,11 +416,6 @@ ENDOFHELP
 
 alias tp='test_port'
 
-# Generates a UUID and copies it to the pasteboard.
-#
-cp_uuid() {
-  uuidgen | pbcopy
-}
 
 
 # ------------------------------------------------------------------------------
@@ -455,10 +442,6 @@ if [[ -f ~/Scripts/aws-functions.sh ]]; then
   . ~/Scripts/aws-functions.sh
 fi
 
-if [ -f ~/Scripts/maven_functions ]; then
-  . ~/Scripts/maven_functions
-fi
-
-if [ -f ~/Scripts/project_functions ]; then
-  . ~/Scripts/project_functions
+if [ -f ~/Scripts/maven-functions.sh ]; then
+  . ~/Scripts/maven-functions.sh
 fi

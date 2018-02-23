@@ -48,7 +48,7 @@ importPackage(javax.naming);
 importPackage(javax.naming.directory);
 importPackage(javax.naming.ldap);
 
-var ldap_props_filename = "ldap_test.properties";
+var ldap_props_filename = "ldap-test.properties";
 
 if (arguments[0] != null) {
     ldap_props_filename = arguments[0];

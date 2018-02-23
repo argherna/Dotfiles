@@ -121,6 +121,11 @@ copyfile() {
   pbcopy < $file_to_copy
 }
 
+# Generates a UUID and copies it to the pasteboard.
+#
+cp_uuid() {
+  uuidgen | pbcopy
+}
 
 # ------------------------------------------------------------------------------
 #

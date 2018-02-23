@@ -59,7 +59,7 @@ importPackage(java.sql);
 importPackage(java.util);
 importPackage(org.postgresql);
 
-var jdbc_props_filename = "jdbc_test.properties";
+var jdbc_props_filename = "jdbc-test.properties";
 if (arguments[0] != null) {
     jdbc_props_filename = arguments[0];
 } 
