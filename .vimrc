@@ -32,7 +32,7 @@ execute pathogen#infect()
 syntax enable
 filetype plugin indent on
 set t_Co=256
-colorscheme 256-grayvim
+"colorscheme 256-grayvim
 
 " ====================================================================
 " Key Mappings.
