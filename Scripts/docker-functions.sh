@@ -73,20 +73,6 @@ ENDOFHELP
   docker build $ARGS
 }
 
-dcexbash() {
-  if [ $# -ne 1 ]; then
-    cat <<-ENDOFHELP
-	Run a Bash shell (bash) in the specified Docker container.
-
-	Usage: $FUNCNAME <container-id>
-
- 	  <container-id>   The Docker container id
-ENDOFHELP
-    return 1
-  fi
-  
-  docker-compose exec $1 /bin/bash
-}
 
 dexsh() {
   if [ $# -ne 1 ]; then
@@ -186,12 +172,8 @@ ENDOFHELP
 }
 
 alias datt='docker attach'
-alias dcb='docker-compose build'
-alias dceb='dcexbash'
 # Credit to <https://gist.github.com/bastman/5b57ddb3c11942094f8d0a97d461b430#remove-docker-images>
 alias dclimg='docker rmi $(docker images --filter "dangling=true" -q --no-trunc)'
-alias dclogs='docker-compose logs'
-alias dcu='docker-compose up'
 alias ddiff='docker diff'
 alias deb='dexbash'
 alias des='dexsh'
@@ -206,4 +188,3 @@ alias drmi='docker rmi'
 alias drun='docker run'
 alias dstart='docker start'
 alias dstop='docker stop'
-

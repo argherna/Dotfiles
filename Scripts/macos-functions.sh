@@ -2,7 +2,7 @@
 
 # ------------------------------------------------------------------------------
 #
-# MacOSX_functions
+# macos-functions.sh
 #
 # Contains convenience functions specific to Mac OSX.
 #
@@ -74,21 +74,13 @@ dbviscmd() {
 # Get rid of DS_STORE (Mac OSX only)
 #
 un_dsstore() {
-  local dsstore_dir=$(pwd)
-  if [ $# -eq 1 ]; then
-     dsstore_dir=$1
-  fi
-  
-  find $dsstore_dir -type f -name ".DS_Store" -exec rm -rf {} \;
+  local DSSTORE_DIR=${1:-$(pwd)}
+  find $DSSTORE_DIR -type f -name ".DS_Store" -exec rm -rf {} \;
 }
 
 un_macosx() {
-  local macosx_dir=$(pwd)
-  if [ $# -eq 1 ]; then
-    macosx_dir=$1
-  fi
-
-  find $macosx_dir -type d -name "__MACOSX" -exec rm -rf {} \;
+  local MACOSX_DIR=${1:-$(pwd)}
+  find $MACOSX_DIR -type d -name "__MACOSX" -exec rm -rf {} \;
 }
 
 # Converts a text file with '\r\n' line endings (DOS files) to '\n' line 
@@ -101,12 +93,12 @@ un_macosx() {
 #
 d2u() {
   if [ $# - eq 0 ]; then
-     echo "Usage: $FUNCNAME FILE_NAME [FILE_NAME ...]"
+     echo "Usage: $FUNCNAME <dos filename> [<dos filename> ...]"
     return 1
   fi
     
-  for dos_file in $*; do
-    tr -d '\r' < $dos_file > ${dos_file}.unix
+  for DOS_FILE in $*; do
+    tr -d '\r' < $DOS_FILE > ${DOS_FILE}.unix
   done
 }
 
@@ -114,7 +106,7 @@ d2u() {
 #
 copyfile() {
   if [ $# -eq 0 ]; then
-    echo "Usage: $FUNCNAME FILENAME"
+    echo "Usage: $FUNCNAME <filename>"
     return 1
   fi
   local file_to_copy=$1
@@ -136,8 +128,6 @@ cp_uuid() {
 
 # Grep highlighting matches in color.
 #
-alias egrepc='egrep --color'
-alias fgrepc='fgrep --color'
 alias grepc='grep --color'
 
 # Long listing.
@@ -148,7 +138,7 @@ alias ll='lsc -l'
 #
 alias lsc='ls -G'
 
-# Set up Emacs (Mac OS X version from <URL:http://emacsformacosx.org> to
+# Set up Emacs (Mac OS X version from <URL:http://emacsformacosx.com> to
 # start in the terminal window.
 #
 alias emacsnw='/Applications/Emacs.app/Contents/MacOS/Emacs -nw'
@@ -184,3 +174,11 @@ alias LogicLander='open -n /Applications/eclipse/Eclipse.app/ --args -data ~/Doc
 alias NetworkTools='open -n /Applications/eclipse/Eclipse.app/ --args -data ~/Documents/workspace/NetworkTools/Code'
 alias Lwtc='open -n /Applications/eclipse/Eclipse.app/ --args -data ~/Documents/workspace/Lwtc/Code/Java'
 alias Maven='open -n /Applications/eclipse/Eclipse.app/ --args -data ~/Documents/workspace/Maven/Code/Java'
+
+
+
+if [[ -x $(which brew 2>/dev/null) ]]; then
+    if [ -f $(brew --prefix)/etc/bash_completion ]; then
+        . $(brew --prefix)/etc/bash_completion
+    fi
+fi

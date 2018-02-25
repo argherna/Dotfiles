@@ -6,34 +6,33 @@
 # <URL:https://wiki.cites.uiuc.edu/wiki/x/FYHpAg> for more information about 
 # this.
 #
+# These are functions, aliases, and environment variables I want everywhere.
+#
 # ------------------------------------------------------------------------------
 
 
 # ------------------------------------------------------------------------------
 #
-#			     Environment variables
+#                            Environment variables
 #
 # ------------------------------------------------------------------------------
 
-# Set a prompt.
+# Set a default prompt.
 #
-#PS1="[\u@\h \W]$ "
+export PS1="[\u@\h \W]$ "
 
-if [[ -z "$PSGCONF_CLASS_NAME" || "$PSGCONF_CLASS_NAME" == "Development" ]]; then
-  export PS1="[\[$(tput sgr0)\]\[\033[38;5;0m\]\[\033[48;5;6m\]\u\[$(tput sgr0)\]\[\033[38;5;15m\]\[\033[48;5;-1m\]@\[$(tput sgr0)\]\[\033[48;5;8m\]\h\[$(tput sgr0)\]\[\033[48;5;-1m\] \[$(tput sgr0)\]\[\033[38;5;12m\]\W\[$(tput sgr0)\]\[\033[38;5;15m\]\[$(tput sgr0)\]] (\[\033[38;5;0m\]\[\033[48;5;7m\]\\#\[$(tput sgr0)\])$ "
-elif [[ "$PSGCONF_CLASS_NAME" == "Test" ]]; then
-  export PS1="[\[$(tput sgr0)\]\[\033[38;5;0m\]\[\033[48;5;3m\]\u\[$(tput sgr0)\]\[\033[38;5;15m\]\[\033[48;5;-1m\]@\[$(tput sgr0)\]\[\033[48;5;8m\]\h\[$(tput sgr0)\]\[\033[48;5;-1m\] \[$(tput sgr0)\]\[\033[38;5;12m\]\W\[$(tput sgr0)\]\[\033[38;5;15m\]\[$(tput sgr0)\]] (\[\033[38;5;0m\]\[\033[48;5;7m\]\\#\[$(tput sgr0)\])$ "
-elif [[ "$PSGCONF_CLASS_NAME" == "Production" ]]; then
-  export PS1="[\[$(tput sgr0)\]\[\033[38;5;0m\]\[\033[48;5;9m\]\u\[$(tput sgr0)\]\[\033[38;5;15m\]\[\033[48;5;-1m\]@\[$(tput sgr0)\]\[\033[48;5;8m\]\h\[$(tput sgr0)\]\[\033[48;5;-1m\] \[$(tput sgr0)\]\[\033[38;5;12m\]\W\[$(tput sgr0)\]\[\033[38;5;15m\]\[$(tput sgr0)\]] (\[\033[38;5;0m\]\[\033[48;5;7m\]\\#\[$(tput sgr0)\])$ "    
+# Set History size to be large. See:
+# <URL:http://www.oreillynet.com/onlamp/blog/2007/01/whats_in_your_bash_history.html>
+#
+export HISTFILESIZE=100000000
+export HISTSIZE=100000
+export HISTCONTROL=ignoredups:ignorespace
+
+export EDITOR=/usr/bin/vim
+
+if [[ $(uname) = "Linux" ]]; then
+  export LS_COLORS='di=36'
 fi
-
-# Set the editor to vim
-#
-export EDITOR=/usr/bin/emacs
-
-# Colors for ls
-#
-export LS_COLORS='di=36'
 
 # ------------------------------------------------------------------------------
 #
@@ -44,31 +43,51 @@ export LS_COLORS='di=36'
 
 # ------------------------------------------------------------------------------
 #
-#				   Functions
+#                                  Functions
 #
 # ------------------------------------------------------------------------------
 
 
-# Source in ~/Scripts/maven_functions
-#
-if [ -f ~/Scripts/maven_functions ]; then
-  . ~/Scripts/maven_functions
+if [[ ! -z $(which mvn) ]] && [[ -f $HOME/Scripts/maven-functions.sh ]]
+then
+  source $HOME/Scripts/maven-functions.sh
 fi
 
-# Create a directory (with parents as needed), then change to it.
+# Colorized man pages from
+# http://boredzo.org/blog/archives/2016-08-15/colorized-man-pages-understood-and-customized
 #
-mkcd() {
-  if [ $# -eq 0 ]; then
-    echo "Usage: $FUNCNAME DIR[/SUB_DIR1/SUB_DIR2...]"
-    return 1
-  fi
-
-  mkdir -p "$1"
-  cd "$1"
+man() {
+    env \
+        LESS_TERMCAP_md=$'\e[1;36m' \
+        LESS_TERMCAP_me=$'\e[0m' \
+        LESS_TERMCAP_se=$'\e[0m' \
+        LESS_TERMCAP_so=$'\e[1;40;92m' \
+        LESS_TERMCAP_ue=$'\e[0m' \
+        LESS_TERMCAP_us=$'\e[1;32m' \
+            man "$@"
 }
 
-# Show the last N commands from history (default is 10).
-#
+mkcd() {
+  
+  if [[ $# -ne 1 ]]; then
+    cat <<-ENDOFHELP
+	Make a new directory, then change to it.
+
+	Usage: $FUNCNAME <path-or-dirname>
+
+	  <path-or-dirname>    Full path or directory name.
+
+	This function will create parent directories as needed (invokes
+	mkdir -p).
+	This function does not support bash expansion for creating 
+	directory trees as in mkcd my/{child1,child2}.
+ENDOFHELP
+    return 1
+  fi
+  mkdir -p "$1" && cd "$1";
+}
+
+
 htail() {
   if [ $# -eq 0 ]; then
     history | tail
@@ -77,25 +96,91 @@ htail() {
     if [[ "$1" =~ $num_regex ]]; then
       history | tail -${1}
     else
-      echo "Usage: $FUNCNAME [N] where N is a number."
+      cat <<-ENDOFHELP
+	Show the last <n> commands from history (default is 10).
+
+	Usage: $FUNCNAME [<n>]
+
+	  <n>    OPTIONAL Number of commands to show (must be a number).
+ENDOFHELP
       return 1
     fi
   fi
 }
 
-# Grep History
-#
-hgrep() { 
-  history | grep $1; 
+hgrep() {
+  if [[ $# -ne 1 ]]; then
+    cat <<-ENDOFHELP
+	Run history through grep to look for the given expression.
+
+	Usage: $FUNCNAME <expression>
+
+	  <expression>    The expression to find in history.
+ENDOFHELP
+    return 1
+  fi
+
+  history | grep $1;
 }
 
 hgrepc() {
-  history | grep --color $1;
+  if [[ $# -ne 1 ]]; then
+    cat <<-ENDOFHELP
+	Run history through grep to look for the given expression. Output is
+	colorized.
+
+	Usage: $FUNCNAME <expression>
+
+	  <expression>    The expression to find in history.
+ENDOFHELP
+    return 1
+  fi
+
+  history | grepc $1;
+}
+
+if [[ -x $(which python 2>/dev/null) ]]; then
+encode_url() {
+  if [ $# -eq 0 ]; then
+    cat <<-ENDOFHELP
+	Url-encode text (e.g. replace ' ' with '%20').
+
+	Usage: $FUNCNAME <text-to-url-encode>
+ENDOFHELP
+    return 1
+  fi
+  python -c "
+import urllib, sys
+print urllib.quote_plus('${1}')
+sys.exit(0)"
+}
+
+decode_url() {
+  if [ $# -eq 0 ]; then
+    cat <<-ENDOFHELP
+	Url-decode text (e.g. replace '%20' with ' ').
+
+	Usage: $FUNCNAME <text-to-url-decode>
+ENDOFHELP
+    return 1
+  fi
+  python -c "
+import urllib, sys
+print urllib.unquote_plus('${1}')
+sys.exit(0)"
+}
+fi
+
+# Print a string with a randomly generated uuid appended at the end.
+# If no argument supplied, output is "changeme-$(uuidgen)".
+#
+a_uuid() {
+  printf "%s%s" ${1:-"changeme-"} $(uuidgen)
 }
 
 # ------------------------------------------------------------------------------
 #
-#				    Aliases
+#                                   Aliases
 #
 # ------------------------------------------------------------------------------
 
@@ -132,4 +217,33 @@ alias rm='rm -i'
 #
 alias scpu='scp -oUser=${TTY_OWNER}'
 
+# less with follow turned on.
+#
+alias lessF='less +F'
+
+# tail a file with follow
+#
+alias tf='tail -f'
+
+# tail a file and follow starting at the end
+#
+alias tft='tail -f -n 0'
+
+# cd to home directory
+#
+alias ~='cd ~'
+
+# cd up some levels (up to 6)
+#
 alias ..='cd ..'
+alias ...='cd ../..'
+alias ....='cd ../../..'
+alias .....='cd ../../../..'
+alias ......='cd ../../../../..'
+alias .......='cd ../../../../../..'
+
+# Search for an environment variable
+#
+alias envs='env|sort'
+alias envsg='env|sort|grep'
+alias envsgc='env|sort|grepc'

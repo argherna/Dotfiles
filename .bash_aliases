@@ -12,23 +12,22 @@
 # ------------------------------------------------------------------------------
 
 KERNEL=$(uname)
-if [ "$KERNEL" == "Linux" ]; then
+if [[ "$KERNEL" = "Linux" ]]; then
 
   # Alias tmux to use Ubuntu config file
   #
   alias tmux='tmux -f ~/.ubu.tmux.conf'
 
-elif [ "$KERNEL" == "Darwin" ]; then
+elif [[ "$KERNEL" = "Darwin" ]]; then
 
   # Alias tmux to use OSX config file
   #
   alias tmux='tmux -f ~/.osx.tmux.conf'
 
-  if [ -f ~/Scripts/macos-functions.sh ]; then
+  if [[ -f ~/Scripts/macos-functions.sh ]]; then
     . ~/Scripts/macos-functions.sh
   fi
 fi
-
 
 
 # ------------------------------------------------------------------------------
@@ -37,14 +36,14 @@ fi
 #
 # ------------------------------------------------------------------------------
 
-BOLD=$(tput bold)
-NORMAL=$(tput sgr0)
+export BOLD=$(tput bold)
+export NORMAL=$(tput sgr0)
 
-BLUE=$(tput setaf 21)
-CYAN=$(tput setaf 78)
-GREEN=$(tput setaf 40)
-ORANGE=$(tput setaf 208)
-RED=$(tput setaf 196)
+export BLUE=$(tput setaf 21)
+export CYAN=$(tput setaf 78)
+export GREEN=$(tput setaf 40)
+export ORANGE=$(tput setaf 208)
+export RED=$(tput setaf 196)
 
 # ------------------------------------------------------------------------------
 #
@@ -52,58 +51,9 @@ RED=$(tput setaf 196)
 #
 # ------------------------------------------------------------------------------
 
-# cp with prompt if overwriting.
-#
-alias cpi='cp -i'
-
-# Default df and du to human readable figures.
-#
-alias dfh='df -h'
-alias duh='du -h'
-
-# Run grep with color output.
-#
-alias grepc='grep --color'
-
-# mv with prompt.
-#
-alias mvi='mv -i'
-
-# rm with prompt as default.
-#
-alias rm='rm -i'
-
-# tail a file with follow
-#
-alias tf='tail -f'
-
-# tail a file and follow starting at the end
-#
-alias tft='tail -f -n 0'
-
 # start tmux in 256 color mode
 #
 alias t2='tmux -2'
-
-# cd to home directory
-#
-alias ~='cd ~'
-
-# cd up some levels (up to 6)
-#
-alias ..='cd ..'
-alias ...='cd ../..'
-alias ....='cd ../../..'
-alias .....='cd ../../../..'
-alias ......='cd ../../../../..'
-alias .......='cd ../../../../../..'
-
-# Search for an environment variable
-#
-alias envs='env|sort'
-alias envsg='env|sort|grep'
-alias envsgc='env|sort|grepc'
-
 
 # Useful shortcuts for hsqldb.
 #
@@ -126,7 +76,7 @@ alias changeu='echo "changeme-$(uuidgen)"'
 #
 # to see all the colors the terminal can produce.
 #
-color(){
+color() {
     for c; do
         printf '\e[48;5;%dm%03d' $c $c
     done
@@ -180,84 +130,13 @@ warn() {
   fi
 }
 
-hgrep() {
-  if [[ $# -ne 1 ]]; then
-    cat <<-ENDOFHELP
-	Run history through grep to look for the given expression.
-
-	Usage: $FUNCNAME <expression>
-
-	  <expression>    The expression to find in history.
-ENDOFHELP
-    return 1
-  fi
-
-  history | grep $1;
-}
-
-hgrepc() {
-  if [[ $# -ne 1 ]]; then
-    cat <<-ENDOFHELP
-	Run history through grep to look for the given expression. Output is
-	colorized.
-
-	Usage: $FUNCNAME <expression>
-
-	  <expression>    The expression to find in history.
-ENDOFHELP
-    return 1
-  fi
-
-  history | grepc $1;
-}
-
-htail() {
-  if [ $# -eq 0 ]; then
-    history | tail
-  else
-    num_regex='^[0-9]+$'
-    if [[ "$1" =~ $num_regex ]]; then
-      history | tail -${1}
-    else
-      cat <<-ENDOFHELP
-	Show the last <n> commands from history (default is 10).
-
-	Usage: $FUNCNAME [<n>]
-
-	  <n>    OPTIONAL Number of commands to show (must be a number).
-ENDOFHELP
-      return 1
-    fi
-  fi
-}
-
-# Make new directory, then change to it.
-#
-mkcd() {
-  
-  if [[ $# -ne 1 ]]; then
-    cat <<-ENDOFHELP
-	Make a new directory, then change to it.
-
-	Usage: $FUNCNAME <path-or-dirname>
-
-	  <path-or-dirname>    Full path or directory name.
-
-	This function will create parent directories as needed (invokes
-	mkdir -p).
-	This function does not support bash expansion for creating 
-	directory trees as in mkcd my/{child1,child2}.
-ENDOFHELP
-    return 1
-  fi
-  mkdir -p "$1" && cd "$1";
-}
 
 s2s_scp() {
 
   if [ $# -lt 3 ]; then
     cat <<-ENDOFHELP
-	Secure copy a file from one remote host to another.
+	Secure copy a file from one remote host to another using a directory
+	on this computer as temporary storage.
 
 	Usage: $FUNCNAME <src-server> <dst-server> <filename> [<group-name>]
 
@@ -269,6 +148,9 @@ s2s_scp() {
 	  <group-name>    OPTIONAL group name to set on <dst-server> for 
 	                  the file.
 
+	Use this function when admins lock down the servers at your 
+	installation to prevent scp working the way it ought to (for 
+	security reasons).
 	The file will be copied to exactly the same path on <dst-server> as 
 	it is on <src-server>.
 	The file is copied to a temporary directory on this machine created
@@ -336,36 +218,6 @@ ENDOFHELP
   ssh $1 chgrp $2 $3
 }
 
-encode_url() {
-  if [ $# -eq 0 ]; then
-    cat <<-ENDOFHELP
-	Url-encode text (e.g. replace ' ' with '%20').
-
-	Usage: $FUNCNAME <text-to-url-encode>
-ENDOFHELP
-    return 1
-  fi
-  python -c "
-import urllib, sys
-print urllib.quote_plus('${1}')
-sys.exit(0)"
-}
-
-decode_url() {
-  if [ $# -eq 0 ]; then
-    cat <<-ENDOFHELP
-	Url-decode text (e.g. replace '%20' with ' ').
-
-	Usage: $FUNCNAME <text-to-url-decode>
-ENDOFHELP
-    return 1
-  fi
-  python -c "
-import urllib, sys
-print urllib.unquote_plus('${1}')
-sys.exit(0)"
-}
-
 headers() {
 
   if [[ $# -lt 1 ]]; then
@@ -417,7 +269,6 @@ ENDOFHELP
 alias tp='test_port'
 
 
-
 # ------------------------------------------------------------------------------
 #                           Terrgrunt and Terraform
 # ------------------------------------------------------------------------------
@@ -434,14 +285,18 @@ alias tg_reset='rm -rf ~/.terragrunt'
 #
 # ------------------------------------------------------------------------------
 
-if [[ -f ~/Scripts/docker-functions.sh ]]; then
-  . ~/Scripts/docker-functions.sh
+if [[ ! -z $(which docker) ]] && [[ -f $HOME/Scripts/docker-functions.sh ]]
+then
+  source $HOME/Scripts/docker-functions.sh
 fi
 
-if [[ -f ~/Scripts/aws-functions.sh ]]; then
-  . ~/Scripts/aws-functions.sh
+if [[ ! -z $(which docker-compose) ]] && [[ -f $HOME/Scripts/docker-compose-functions.sh ]]
+then
+  source $HOME/Scripts/docker-compose-functions.sh
 fi
 
-if [ -f ~/Scripts/maven-functions.sh ]; then
-  . ~/Scripts/maven-functions.sh
+if [[ ! -z $(which aws) ]] && [[ -f $HOME/Scripts/aws-functions.sh ]]
+then
+  source $HOME/Scripts/aws-functions.sh
 fi
+
