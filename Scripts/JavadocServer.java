@@ -1,10 +1,8 @@
-/*bin/mkdir /tmp/javadoc-server 2> /dev/null
-javac -d /tmp/javadoc-server $0
-java -cp /tmp/javadoc-server JavadocServer "$@"
-rm -rf /tmp/javadoc-server
+/*bin/mkdir -p /tmp/.java/classes 2> /dev/null
+javac -d /tmp/.java/classes $0
+java -cp /tmp/.java/classes $(basename ${0%.*}) "$@"
 exit
 */
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
