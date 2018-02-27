@@ -1,6 +1,7 @@
 /*bin/mkdir /tmp/javadoc-server 2> /dev/null
 javac -d /tmp/javadoc-server $0
 java -cp /tmp/javadoc-server JavadocServer "$@"
+rm -rf /tmp/javadoc-server
 exit
 */
 
