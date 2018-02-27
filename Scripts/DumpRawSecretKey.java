@@ -11,8 +11,6 @@ import java.io.PrintStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 
-import javax.xml.bind.DatatypeConverter;
-
 /**
  * Dumps a secret key as a raw string from a Java JCEKS keystore.
  */
