@@ -99,15 +99,16 @@ class LdapConnectTest {
     Exception ex = null;
     try {
       LdapContext ldapContext = new InitialLdapContext(env, null);
-    
       if (useStartTls) {
         StartTlsResponse tls =
           (StartTlsResponse) ldapContext.extendedOperation(new StartTlsRequest());
         tls.negotiate();
-        addToContext(bindDn, password, ldapContext);
+        addToContextEnvironment(bindDn, password, ldapContext);
+        ldapContext.getAttributes("");
         tls.close();
       } else {
-        addToContext(bindDn, password, ldapContext);
+        addToContextEnvironment(bindDn, password, ldapContext);
+        ldapContext.getAttributes("");
       }
     } catch (Exception e) {
       ex = e;
@@ -121,7 +122,7 @@ class LdapConnectTest {
     }
   }
 
-  private static void addToContext(String bindDn, String password, 
+  private static void addToContextEnvironment(String bindDn, String password, 
     LdapContext ldapContext) throws NamingException {
     ldapContext.addToEnvironment("java.naming.security.authentication", 
       "simple");
