@@ -1,6 +1,12 @@
 /*bin/mkdir -p /tmp/.java/classes 2> /dev/null
+
+# Compile the program.
+#
 javac -d /tmp/.java/classes $0
-java -cp /tmp/.java/classes $(basename ${0%.*}) "$@"
+
+# Run the compiled program only if compilation succeeds.
+#
+[[ $? -eq 0 ]] && java -cp /tmp/.java/classes $(basename ${0%.*}) "$@"
 exit
 */
 import java.io.File;
@@ -22,7 +28,7 @@ import javax.crypto.spec.SecretKeySpec;
 /**
  * Imports a Base64-encoded string into a Java JCEKS keystore as a secret key.
  */
-public class ImportBase64SecretKey {
+class ImportBase64SecretKey {
 
   /**
    * Main function.
@@ -31,12 +37,20 @@ public class ImportBase64SecretKey {
    * Command-line arguments match those of the keytool to communicate intent.
    */
   public static void main(String[] args) {
+
+    if (args.length == 0) {  
+      showUsageAndExit(2);
+    }
+
+    int argIdx = 0;
     String alias = null;
     String filename = null;
+    String keyalg = "AES";
     char[] keypass = null;
     String keystorename = null;
     char[] storepass = null;
-    int argIdx = 0;
+    String storetype = "jceks";
+
     while (argIdx < args.length) {
       String arg = args[argIdx];
       switch (arg) {
@@ -49,6 +63,9 @@ public class ImportBase64SecretKey {
         case "-help":
           showUsageAndExit(2);
           break;
+        case "-keyalg":
+          keyalg = args[++argIdx];
+          break;
         case "-keypass":
           keypass = args[++argIdx].toCharArray();
           break;
@@ -58,7 +75,12 @@ public class ImportBase64SecretKey {
         case "-storepass":
           storepass = args[++argIdx].toCharArray();
           break;
+        case "-storetype":
+          storetype = args[++argIdx].toUpperCase();
+          break;
         default:
+          System.err.printf("Unknown option: %s%n");
+          showUsageAndExit(1);
           break;
       }
       argIdx++;
@@ -74,12 +96,12 @@ public class ImportBase64SecretKey {
       showUsageAndExit(1);
     }
 
-    if (storepass == null || (storepass != null && storepass.length == 0)) {
+    if (isNullOrEmpty(storepass)) {
       System.err.println("Must specify a store password");
       showUsageAndExit(1);
     }
 
-    if (keypass == null || (keypass != null && keypass.length == 0)) {
+    if (isNullOrEmpty(keypass)) {
       keypass = storepass;
     }
 
@@ -88,7 +110,7 @@ public class ImportBase64SecretKey {
 
     try (FileInputStream keystoreIn = new FileInputStream(keystoreFile)) {
 
-      keystore = KeyStore.getInstance("JCEKS");
+      keystore = KeyStore.getInstance(storetype);
       keystore.load(keystoreIn, storepass);
 
     } catch (IOException | GeneralSecurityException e) {
@@ -104,7 +126,7 @@ public class ImportBase64SecretKey {
       
       Base64.Decoder decoder = Base64.getDecoder();
       byte[] bytes = decoder.decode(keystring);
-      key = new SecretKeySpec(bytes, 0, bytes.length, "AES");
+      key = new SecretKeySpec(bytes, 0, bytes.length, keyalg);
 
       KeyStore.SecretKeyEntry ske = new KeyStore.SecretKeyEntry(key);
       KeyStore.PasswordProtection prot = new KeyStore.PasswordProtection(keypass);
@@ -129,21 +151,27 @@ public class ImportBase64SecretKey {
   }
 
   private static void showUsage() {
-    System.err.printf("%s [OPTION]%n", ImportBase64SecretKey.class.getName());
-    System.err.println("");
+    System.err.printf("Usage: %s [OPTION]%n", ImportBase64SecretKey.class.getName());
+    System.err.println();
     System.err.println("Imports base64 encoded secret key to an existing keystore");
-    System.err.println("");
+    System.err.println();
     System.err.println("Options:");
-    System.err.println("");
+    System.err.println();
     System.err.println(" -alias <alias>        alias name of the entry to process");
     System.err.println(" -file <filename>      output file name (default is write to stdout)");
     System.err.println(" -help                 show this message and exit");
+    System.err.println(" -keyalg <arg>         key algorithm name");
     System.err.println(" -keypass <arg>        key password");
     System.err.println(" -keystore <keystore>  keystore name");
     System.err.println(" -storepass <arg>      keystore password");
+    System.err.println(" -storetype <arg>      keystore type");
   }
 
   private static boolean isNullOrEmpty(String value) {
     return (value == null || (value != null && value.isEmpty()));
+  }
+
+  private static boolean isNullOrEmpty(char[] value) {
+    return (value == null || (value !=null && value.length == 0));
   }
 }

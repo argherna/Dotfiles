@@ -1,6 +1,12 @@
 /*bin/mkdir -p /tmp/.java/classes 2> /dev/null
+
+# Compile the program.
+#
 javac -d /tmp/.java/classes $0
-java -cp /tmp/.java/classes $(basename ${0%.*}) "$@"
+
+# Run the compiled program only if compilation succeeds.
+#
+[[ $? -eq 0 ]] && java -cp /tmp/.java/classes $(basename ${0%.*}) "$@"
 exit
 */
 import java.io.File;
@@ -14,7 +20,7 @@ import java.security.KeyStore;
 /**
  * Dumps a secret key as a raw string from a Java JCEKS keystore.
  */
-public class DumpRawSecretKey {
+class DumpRawSecretKey {
 
   /**
    * Main function.
@@ -24,12 +30,18 @@ public class DumpRawSecretKey {
    */
   public static void main(String... args) {
 
+    if (args.length == 0) {
+      showUsageAndExit(2);
+    }
+    
+    int argIdx = 0;
     String alias = null;
     String filename = null;
     char[] keypass = null;
     String keystorename = null;
     char[] storepass = null;
-    int argIdx = 0;
+    String storetype = "jceks";
+
     while (argIdx < args.length) {
       String arg = args[argIdx];
       switch (arg) {
@@ -51,7 +63,12 @@ public class DumpRawSecretKey {
         case "-storepass":
           storepass = args[++argIdx].toCharArray();
           break;
+        case "-storetype":
+          storetype = args[++argIdx].toUpperCase();
+          break;
         default:
+          System.err.printf("Unknown option: %s%n");
+          showUsageAndExit(1);
           break;
       }
       argIdx++;
@@ -67,12 +84,12 @@ public class DumpRawSecretKey {
       showUsageAndExit(1);
     }
 
-    if (storepass == null || (storepass != null && storepass.length == 0)) {
+    if (isNullOrEmpty(storepass)) {
       System.err.println("Must specify a store password");
       showUsageAndExit(1);
     }
 
-    if (keypass == null || (keypass != null && keypass.length == 0)) {
+    if (isNullOrEmpty(keypass)) {
       keypass = storepass;
     }
 
@@ -83,7 +100,7 @@ public class DumpRawSecretKey {
         outstream = new FileOutputStream(filename);
         out = new PrintStream(outstream);
       }
-      KeyStore keystore = KeyStore.getInstance("JCEKS");
+      KeyStore keystore = KeyStore.getInstance(storetype);
       keystore.load(keystorein, storepass);
       KeyStore.ProtectionParameter protection = new KeyStore.PasswordProtection(keypass);
       KeyStore.SecretKeyEntry secretkey =
@@ -119,23 +136,28 @@ public class DumpRawSecretKey {
   }
 
   private static void showUsage() {
-    System.err.printf("%s [OPTION]%n", DumpRawSecretKey.class.getName());
-    System.err.println("");
+    System.err.printf("Usage: %s [OPTION]%n", DumpRawSecretKey.class.getName());
+    System.err.println();
     System.err.println("Dumps raw secret key from a keystore; useful for dumping");
     System.err.println("passwords saved in a keystore added by the keytool command");
     System.err.println("-importpass");
-    System.err.println("");
+    System.err.println();
     System.err.println("Options:");
-    System.err.println("");
+    System.err.println();
     System.err.println(" -alias <alias>        alias name of the entry to process");
     System.err.println(" -file <filename>      output file name (default is write to stdout)");
     System.err.println(" -help                 show this message and exit");
     System.err.println(" -keypass <arg>        key password");
     System.err.println(" -keystore <keystore>  keystore name");
     System.err.println(" -storepass <arg>      keystore password");
+    System.err.println(" -storetype <arg>      keystore type");
   }
 
   private static boolean isNullOrEmpty(String value) {
     return (value == null || (value != null && value.isEmpty()));
+  }
+
+  private static boolean isNullOrEmpty(char[] value) {
+    return (value == null || (value !=null && value.length == 0));
   }
 }

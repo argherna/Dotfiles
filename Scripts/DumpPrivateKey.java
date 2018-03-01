@@ -1,6 +1,12 @@
 /*bin/mkdir -p /tmp/.java/classes 2> /dev/null
+
+# Compile the program.
+#
 javac -d /tmp/.java/classes $0
-java -cp /tmp/.java/classes $(basename ${0%.*}) "$@"
+
+# Run the compiled program only if compilation succeeds.
+#
+[[ $? -eq 0 ]] && java -cp /tmp/.java/classes $(basename ${0%.*}) "$@"
 exit
 */
 import java.io.Console;
@@ -47,22 +53,22 @@ import java.util.Base64.Encoder;
  * @author agherna
  *
  */
-public class DumpPrivateKey {
+class DumpPrivateKey {
 
   public static void main(String[] args) {
 
     if (args.length == 0) {
-      showUsage();
-      System.exit(2);
+      showUsageAndExit(2);
     }
 
     int argIdx = 0;
     String keystorename = null;
     char[] storepass = null;
-    String alias = null;
+    String alias = "mykey";
     PrintStream out = System.out;
     char[] keypass = null;
     String outfilename = null;
+    String storetype = "jks";
 
     while (argIdx < args.length) {
 
@@ -87,10 +93,13 @@ public class DumpPrivateKey {
         case "-storepass":
           storepass = args[++argIdx].toCharArray();
           break;
+        case "-storetype":
+          storetype = args[++argIdx];
+          break;
         default:
           System.err.printf("Unknown option %s%n", arg);
-          showUsage();
-          System.exit(1);
+          showUsageAndExit(1);
+          break;
       }
       argIdx++;
     }
@@ -101,16 +110,12 @@ public class DumpPrivateKey {
               System.getProperty("file.separator"));
     }
 
-    if (storepass == null || storepass.length == 0) {
+    if (isNullOrEmpty(storepass)) {
       storepass = getPassword("keystore");
     }
 
-    if (keypass == null || keypass.length == 0) {
+    if (isNullOrEmpty(keypass)) {
       keypass = storepass;
-    }
-
-    if (alias == null) {
-      alias = "mykey";
     }
 
     if (outfilename != null) {
@@ -123,7 +128,7 @@ public class DumpPrivateKey {
     }
 
     try {
-      KeyStore ks = KeyStore.getInstance("jks");
+      KeyStore ks = KeyStore.getInstance(storetype);
       File keystore = new File(keystorename);
       ks.load(new FileInputStream(keystore), storepass);
       Key key = ks.getKey(alias, keypass);
@@ -159,19 +164,25 @@ public class DumpPrivateKey {
     out.printf("-----END %s PRIVATE KEY-----%n", key.getAlgorithm());
   }
 
+  private static void showUsageAndExit(int code) {
+    showUsage();
+    System.exit(code);
+  }
+
   private static void showUsage() {
     System.err
-        .printf("%s [OPTION]...%n", DumpPrivateKey.class.getSimpleName());
-    System.err.println("");
+        .printf("Usage: %s [OPTION]...%n", DumpPrivateKey.class.getSimpleName());
+    System.err.println();
     System.err.println("Dumps the private key from a keystore");
-    System.err.println("");
+    System.err.println();
     System.err.println("Options:");
-    System.err.println("");
+    System.err.println();
     System.err.println(" -alias <alias>        alias name of the entry to process");
     System.err.println(" -file <filename>      output file name");
     System.err.println(" -keypass <arg>        key password (optional, defaults to storepass)");
     System.err.println(" -keystore <keystore>  keystore name");
     System.err.println(" -storepass <arg>      keystore password");
+    System.err.println(" -storetype <arg>      keystore type");
   }
 
   private static char[] getPassword(String passwordType) {
@@ -183,5 +194,9 @@ public class DumpPrivateKey {
       password = c.readPassword("Enter %s password:  ", passwordType);
     }
     return password;
+  }
+
+  private static boolean isNullOrEmpty(char[] value) {
+    return (value == null || (value !=null && value.length == 0));
   }
 }

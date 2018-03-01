@@ -1,6 +1,12 @@
 /*bin/mkdir -p /tmp/.java/classes 2> /dev/null
+
+# Compile the program.
+#
 javac -d /tmp/.java/classes $0
-java -cp /tmp/.java/classes $(basename ${0%.*}) "$@"
+
+# Run the compiled program only if compilation succeeds.
+#
+[[ $? -eq 0 ]] && java -cp /tmp/.java/classes $(basename ${0%.*}) "$@"
 exit
 */
 import java.io.ByteArrayOutputStream;
@@ -52,7 +58,7 @@ import com.sun.net.httpserver.HttpServer;
  * <li>{@code $HOME/.m2/repository}
  * </ul>
  */
-public class JavadocServer {
+class JavadocServer {
 
   private static final int BUF_SIZE = 0x1000;
 
@@ -80,8 +86,15 @@ public class JavadocServer {
     int port = DEFAULT_HTTP_PORT;
 
     if (args.length == 1) {
-      port = Integer.valueOf(args[0]);
+      try {
+        port = Integer.valueOf(args[0]);
+      } catch (NumberFormatException e) {
+        System.err.printf("%s is not a valid port number, defaulting to %d%n",
+          args[0], DEFAULT_HTTP_PORT);
+        port = DEFAULT_HTTP_PORT;
+      }
     }
+
     final JavadocServer server;
 
     try {
@@ -302,10 +315,9 @@ public class JavadocServer {
     }
 
     /**
-     * Copies InputStream to OutputStream returning the number of bytes copied.
+     * Convert the InputStream to a byte array and returns it.
      * 
-     * @param from InputStream to copy from.
-     * @param to OutputStream to copy to.
+     * @param from InputStream to convert.
      * 
      * <p>
      * Shamelessly copied and adapted from com.google.common.io.ByteStreams.copy() and 
@@ -406,6 +418,5 @@ public class JavadocServer {
     Collection<String> getJavadocArtifactDirectoryNames() {
       return javadocArtifactDirectoryNames;
     }
-  
   }
 }
