@@ -149,7 +149,7 @@ class DumpPrivateKey {
     out.printf("Key-Format: %s%n", key.getFormat());
     out.printf("Keystore-File: %s%n", keystore.getName());
     out.printf("Keystore-Type: %s%n", ks.getType());
-    out.println("");
+    out.println();
     int index = 0;
     int linelength = 76;
     while (index < b64.length()) {

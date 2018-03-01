@@ -109,10 +109,8 @@ class ImportBase64SecretKey {
     KeyStore keystore = null;
 
     try (FileInputStream keystoreIn = new FileInputStream(keystoreFile)) {
-
       keystore = KeyStore.getInstance(storetype);
       keystore.load(keystoreIn, storepass);
-
     } catch (IOException | GeneralSecurityException e) {
       System.err.printf("Failure! %s%n", e.getMessage());
       System.exit(1);
@@ -120,7 +118,6 @@ class ImportBase64SecretKey {
 
     SecretKey key = null;
     try {
-
       Path keypath = FileSystems.getDefault().getPath(filename);
       String keystring = Files.lines(keypath).findFirst().get();
       
@@ -131,7 +128,6 @@ class ImportBase64SecretKey {
       KeyStore.SecretKeyEntry ske = new KeyStore.SecretKeyEntry(key);
       KeyStore.PasswordProtection prot = new KeyStore.PasswordProtection(keypass);
       keystore.setEntry(alias, ske, prot);
-
     } catch (IOException | GeneralSecurityException e) {
       System.err.printf("Failure! %s%n", e.getMessage());
       System.exit(1);

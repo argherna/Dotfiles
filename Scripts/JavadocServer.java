@@ -1,3 +1,4 @@
+
 /*bin/mkdir -p /tmp/.java/classes 2> /dev/null
 
 # Compile the program.
@@ -64,15 +65,15 @@ class JavadocServer {
 
   private static final int DEFAULT_HTTP_PORT = 8080;
 
-  private static final String SYSPROP_JAVA_HOME = System.getProperty("java.home");
-
-  private static final String SYSPROP_FILE_SEP = System.getProperty("file.separator");
-
-  private static final String SYSPROP_USER_HOME = System.getProperty("user.home");
-
   private static final Logger LOGGER = Logger.getLogger(JavadocServer.class.getName());
 
   private static final String HTTP_DATE_LOG_FORMAT = "[dd/MMM/yyyy HH:mm:ss]";
+
+  private static final String SYSPROP_FILE_SEP = System.getProperty("file.separator");
+
+  private static final String SYSPROP_JAVA_HOME = System.getProperty("java.home");
+
+  private static final String SYSPROP_USER_HOME = System.getProperty("user.home");
 
   private final HttpServer httpServer;
 
@@ -82,29 +83,37 @@ class JavadocServer {
    * The main takes 1 command line argument that signifies the port to run the server on.
    */
   public static void main(String... args) {
-
+    
+    int argIdx = 0;
     int port = DEFAULT_HTTP_PORT;
-
-    if (args.length == 1) {
-      try {
-        port = Integer.valueOf(args[0]);
-      } catch (NumberFormatException e) {
-        System.err.printf("%s is not a valid port number, defaulting to %d%n",
-          args[0], DEFAULT_HTTP_PORT);
-        port = DEFAULT_HTTP_PORT;
+    
+    while (argIdx < args.length) {
+      String arg = args[argIdx];
+      switch (arg) {
+        case "-h":
+        case "--help":
+          showUsageAndExit(2);
+          break;
+        default:
+          try {
+            port = Integer.valueOf(arg);
+          } catch (NumberFormatException e) {
+            LOGGER.config(String.format("%s is not a valid port number, defaulting to %d%n", args[0], DEFAULT_HTTP_PORT));
+            port = DEFAULT_HTTP_PORT;
+          }
+          break;
       }
+      argIdx++;
     }
 
     final JavadocServer server;
 
     try {
       String jdkDocs = "jdk-docs-all.zip";
-      server = new JavadocServer(port,
-          String.format("%1$s%2$s.m2%2$srepository", SYSPROP_USER_HOME, SYSPROP_FILE_SEP),
+      server = new JavadocServer(port, String.format("%1$s%2$s.m2%2$srepository", SYSPROP_USER_HOME, SYSPROP_FILE_SEP),
           String.format("%1$s%2$s%3$s", SYSPROP_JAVA_HOME, SYSPROP_FILE_SEP, jdkDocs));
 
       Runtime.getRuntime().addShutdownHook(new Thread() {
-
         @Override
         public void run() {
           server.shutdown();
@@ -112,30 +121,48 @@ class JavadocServer {
       });
 
       server.serve();
-
     } catch (Exception e) {
       System.err.printf("%s", e.getMessage());
       System.exit(1);
     }
-
   }
 
-  public JavadocServer(int port, String mavenRepoDirname, String javaApiArchivename)
-      throws IOException {
+  private static void showUsageAndExit(int status) {
+    showUsage();
+    System.exit(status);
+  }
+
+  private static void showUsage() {
+    System.err.printf("Usage: %s [port]%n", JavadocServer.class.getName());
+    System.err.println();
+    System.err.println("Serves content from javadoc jars stored locally in zip/jar files.");
+    System.err.println("Documentation archives by default are the local JDK documentation");
+    System.err.println("in $JAVA_HOME/jdk-docs-all.zip and in the local Maven repository in");
+    System.err.println("${user.home}/.m2/repository");
+    System.err.println();
+    System.err.println("Arguments:");
+    System.err.println();
+    System.err.println(" port          port the server will listen on (default is 8080)");
+    System.err.println();
+    System.err.println("Options:");
+    System.err.println();
+    System.err.println(" -h, --help    show this help and exit");
+  }
+
+  JavadocServer(int port, String mavenRepoDirname, String javaApiArchivename) throws IOException {
     LOGGER.finest(String.format("mavenRepoDirname = %s", mavenRepoDirname));
     httpServer = HttpServer.create(new InetSocketAddress(port), 0);
     httpHandler = new JavadocHttpHandler(mavenRepoDirname, javaApiArchivename);
   }
 
-  public void serve() {
+  void serve() {
     LOGGER.config("Starting HTTP server...");
     httpServer.createContext("/jdoc", httpHandler);
-    LOGGER.config(String.format("Server ready at http://localhost:%1$d/jdoc",
-        httpServer.getAddress().getPort()));
+    LOGGER.config(String.format("Server ready at http://localhost:%1$d/jdoc", httpServer.getAddress().getPort()));
     httpServer.start();
   }
 
-  public void shutdown() {
+  void shutdown() {
     LOGGER.warning("Stopping HTTP server...");
     httpServer.stop(0);
   }
@@ -146,20 +173,17 @@ class JavadocServer {
    */
   private static class JavadocHttpHandler implements HttpHandler {
 
-    private final Path mavenRepoDir;
+    private static final String ERROR_HTML_TEMPLATE = "<html><head><title>%1$d %2$s</title></head><body><h1>%2$s</h1><p>%3$s</p></body></html>";
 
-    private static final String ERROR_HTML_TEMPLATE =
-        "<html><head><title>%1$d %2$s</title></head><body><h1>%2$s</h1><p>%3$s</p></body></html>";
+    private static final String HTML_LIST_ITEM_TEMPLATE = "<li><a href=\"/jdoc/m2/%1$s/%2$s/%3$s/index.html\">%1$s:%2$s:%3$s</a></li>";
 
-    private static final String INDEX_HTML_TEMPLATE =
-        "<html><head><title>Available Local Javadoc</title></head><body><h1>Avaliable Local Javadoc</h1>"
-            + "<h2>JDK API</h2><ul><li><a href=\"jdoc/jdk/docs/api/index.html\">Java API</a></li></ul>"
-            + "<h2>Maven Repository</h2><ul>%s</ul></body></html>";
-
-    private static final String LIST_ITEM_TEMPLATE =
-        "<li><a href=\"/jdoc/m2/%1$s/%2$s/%3$s/index.html\">%1$s:%2$s:%3$s</a></li>";
+    private static final String INDEX_HTML_TEMPLATE = "<html><head><title>Available Local Javadoc</title></head><body><h1>Avaliable Local Javadoc</h1>"
+        + "<h2>JDK API</h2><ul><li><a href=\"jdoc/jdk/docs/api/index.html\">Java API</a></li></ul>"
+        + "<h2>Maven Repository</h2><ul>%s</ul></body></html>";
 
     private static final Map<String, String> TYPES;
+
+    private final Path mavenRepoDir;
 
     private final String javadocArchivename;
 
@@ -197,32 +221,27 @@ class JavadocServer {
 
       if (!exchange.getRequestMethod().equals("GET")) {
         status = 405;
-        content =
-            getErrorHtml(status, "Method not allowed", exchange.getRequestMethod()).getBytes();
+        content = getErrorHtml(status, "Method not allowed", exchange.getRequestMethod()).getBytes();
       } else {
-
         String requestPath = exchange.getRequestURI().getPath();
         if (requestPath.endsWith("/")) {
           requestPath = requestPath.substring(0, requestPath.length() - 1);
         }
 
-        List<String> pathElements = Arrays.asList(requestPath.split(SYSPROP_FILE_SEP)).stream().filter(pe -> { 
+        List<String> pathElements = Arrays.asList(requestPath.split(SYSPROP_FILE_SEP)).stream().filter(pe -> {
           return pe != null && !pe.isEmpty();
         }).collect(Collectors.toList());
         LOGGER.finest(String.format("pathElements = %s", pathElements.toString()));
         if (pathElements.size() == 1) {
-          content =
-              getIndexHtml(toListElements(getMavenJavadocArtifactDirectoryNames())).getBytes();
+          content = getIndexHtml(toHtmlListElements(getMavenJavadocArtifactDirectoryNames())).getBytes();
         } else if (pathElements.size() > 0) {
           String repoType = pathElements.get(1);
           if (repoType.equals("m2")) {
-
             if (pathElements.size() < 5) {
               status = 400;
               content = getErrorHtml(status, "Method Not Allowed",
                   String.format("Method %s not supported", exchange.getRequestMethod())).getBytes();
             } else {
-
               String javadocJarname = toMavenCoordinates(mavenRepoDir.toString(),
                   pathElements.subList(2, pathElements.size()));
               LOGGER.finer(String.format("javadocJarname = %s", javadocJarname));
@@ -236,11 +255,8 @@ class JavadocServer {
 
               content = getContentFromZip(javadocJarname, docPath);
               contentType = TYPES.get(getFileExtension(docPath));
-
             }
-
           } else if (repoType.equals("jdk")) {
-
             StringJoiner fpJoiner = new StringJoiner(SYSPROP_FILE_SEP);
             pathElements.subList(2, pathElements.size()).stream().forEach(pe -> {
               fpJoiner.add(pe);
@@ -250,12 +266,11 @@ class JavadocServer {
 
             content = getContentFromZip(javadocArchivename, docPath);
             contentType = TYPES.get(getFileExtension(docPath));
-
           } else {
             status = 404;
             content = getErrorHtml(status, "Not Found",
-                String.format("The requested URL %s was not found on this server",
-                    exchange.getRequestURI().getPath())).getBytes();
+                String.format("The requested URL %s was not found on this server", exchange.getRequestURI().getPath()))
+                    .getBytes();
           }
         }
       }
@@ -263,18 +278,19 @@ class JavadocServer {
       try (OutputStream out = exchange.getResponseBody()) {
         Headers h = exchange.getResponseHeaders();
         h.add("Content-Type", contentType);
-        h.add("Server",
-            String.format("%s/Java %s", getClass().getName(), System.getProperty("java.version")));
-
+        h.add("Server", String.format("%s/Java %s", JavadocServer.class.getName(), 
+          System.getProperty("java.version")));
         exchange.sendResponseHeaders(status, content.length);
+
         out.write(content);
+        out.flush();
 
         // Log the request
-        LOGGER.info(String.format("%1$s - - %2$s \"%3$s %4$s\" %5$d -",
-            exchange.getRemoteAddress().getAddress().toString(),
-            new SimpleDateFormat(HTTP_DATE_LOG_FORMAT).format(new Date()),
-            exchange.getRequestMethod(), exchange.getRequestURI().getPath(), status));
-
+        LOGGER.info(
+            String.format("%1$s - - %2$s \"%3$s %4$s\" %5$d -", exchange.getRemoteAddress().getAddress().toString(),
+                new SimpleDateFormat(HTTP_DATE_LOG_FORMAT).format(new Date()), exchange.getRequestMethod(),
+                exchange.getRequestURI().getPath(), status));
+        exchange.close();
       } catch (IOException e) {
         LOGGER.log(Level.WARNING, "Problem sending response", e);
       }
@@ -342,7 +358,7 @@ class JavadocServer {
       return finder.getJavadocArtifactDirectoryNames();
     }
 
-    private Collection<String> toListElements(Collection<String> javadocArchiveNames) {
+    private Collection<String> toHtmlListElements(Collection<String> javadocArchiveNames) {
       List<String> listElements = new ArrayList<>();
 
       for (String javadocArchivename : javadocArchiveNames) {
@@ -351,9 +367,8 @@ class JavadocServer {
         parts.subList(0, parts.size() - 2).stream().forEach(part -> {
           dotJoiner.add(part);
         });
-        String listElement =
-            String.format(LIST_ITEM_TEMPLATE, dotJoiner.toString(),
-                parts.get(parts.size() - 2), parts.get(parts.size() - 1));
+        String listElement = String.format(HTML_LIST_ITEM_TEMPLATE, dotJoiner.toString(), parts.get(parts.size() - 2),
+            parts.get(parts.size() - 1));
         listElements.add(listElement);
       }
       return listElements;
@@ -379,27 +394,25 @@ class JavadocServer {
   private static class JavadocArchiveFinder extends SimpleFileVisitor<Path> {
 
     private static final Logger LOGGER = Logger.getLogger(JavadocArchiveFinder.class.getName());
-  
+
     private final List<String> javadocArtifactDirectoryNames = new ArrayList<>();
-  
-    private final PathMatcher matcher =
-        FileSystems.getDefault().getPathMatcher("regex:.*-javadoc.jar$");
-  
+
+    private final PathMatcher matcher = FileSystems.getDefault().getPathMatcher("regex:.*-javadoc.jar$");
+
     private final Path basePath;
-    
+
     private JavadocArchiveFinder(Path basePath) {
       this.basePath = basePath;
     }
-  
+
     @Override
     public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
       LOGGER.finest(String.format("Scanning %s", dir.toString()));
       return super.preVisitDirectory(dir, attrs);
     }
-  
+
     @Override
     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-  
       Path name = file.getFileName();
       if (name != null && matcher.matches(name)) {
         Path subpath = file.subpath(basePath.getNameCount(), file.getNameCount() - 1);
@@ -408,13 +421,13 @@ class JavadocServer {
       }
       return FileVisitResult.CONTINUE;
     }
-  
+
     @Override
     public FileVisitResult visitFileFailed(Path file, IOException exc) throws IOException {
       LOGGER.log(Level.WARNING, String.format("Problem with %s", file.toString()), exc);
       return super.visitFileFailed(file, exc);
     }
-  
+
     Collection<String> getJavadocArtifactDirectoryNames() {
       return javadocArtifactDirectoryNames;
     }
