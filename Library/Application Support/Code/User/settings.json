@@ -1,0 +1,37 @@
+// Place your settings in this file to overwrite the default settings
+{
+    "editor.fontSize": 18,
+    "window.nativeTabs": true,
+    "window.zoomLevel": 0,
+    "workbench.colorTheme": "Default Light+",
+    "workbench.colorCustomizations": {
+        "statusBar.background": "#AAAAAA",
+        "statusBar.noFolderBackground": "#AAA",
+        "statusBar.debuggingBackground": "#AAA",
+        "statusBar.foreground": "#333"
+    },
+    "workbench.activityBar.visible": false,
+    "workbench.sideBar.location": "left",
+    "workbench.statusBar.visible": true,
+    "editor.minimap.enabled": false,
+    "editor.lineNumbers":"off",
+    "terminal.integrated.fontSize": 18,
+    "workbench.startupEditor": "newUntitledFile",
+    "extensions.ignoreRecommendations": false,
+    "gitlens.advanced.messages": {
+        "suppressCommitHasNoPreviousCommitWarning": false,
+        "suppressCommitNotFoundWarning": false,
+        "suppressFileNotUnderSourceControlWarning": false,
+        "suppressGitVersionWarning": false,
+        "suppressLineUncommittedWarning": true,
+        "suppressNoRepositoryWarning": true,
+        "suppressResultsExplorerNotice": false
+    },
+    "java.errors.incompleteClasspath.severity": "ignore",
+    "diffEditor.ignoreTrimWhitespace": false,
+    "java.home": "/Library/Java/JavaVirtualMachines/jdk1.8.0_131.jdk/Contents/Home",
+    "gitlens.keymap": "alternate",
+    "editor.multiCursorModifier": "ctrlCmd",
+    "editor.renderWhitespace": "none",
+    "editor.renderControlCharacters": false
+}
