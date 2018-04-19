@@ -49,13 +49,23 @@ class LocalDirectoryServer {
  
   private static final Logger LOGGER = Logger.getLogger(
     LocalDirectoryServer.class.getName());
-
-  private static final String HTTP_DATE_LOG_FORMAT = "[dd/MMM/yyyy HH:mm:ss]";
  
   private final Map<String, Path> directoriesToServe = new HashMap<>();
 
   private final HttpServer httpServer;
 
+  /**
+   * HTTP server that serves files out of a directory.
+   * 
+   * <p>
+   * Specify each folder on the command line using 
+   * {@code directory-to-serve:server-path} for each directory on the command 
+   * line. For example, to serve a directory {@code /home/user/json} with the 
+   * server path {@code json}, you would set {@code /home/user/json:/json}.
+   * 
+   * <p>
+   * You can set the port. The default is {@value #DEFAULT_HTTP_PORT}.
+   */
   public static void main (String... args) {
 
     if (args.length == 0) {
@@ -113,19 +123,15 @@ class LocalDirectoryServer {
   }
 
   void serve() {
-    LOGGER.config("Starting HTTP server...");
     for (String path : directoriesToServe.keySet()) {
       HttpHandler localDirectoryHttpHandler = new LocalDirectoryHttpHandler(
         directoriesToServe.get(path));
-      HttpContext context = httpServer.createContext(path, localDirectoryHttpHandler);
-      LOGGER.config(String.format("Server ready at http://localhost:%1$d%2$s",
-        httpServer.getAddress().getPort(), context.getPath()));
+      httpServer.createContext(path, localDirectoryHttpHandler);
     }
     httpServer.start();
   }
 
   void shutdown() {
-    LOGGER.warning("Stopping HTTP server...");
     httpServer.stop(0);
   }
 
@@ -202,27 +208,28 @@ class LocalDirectoryServer {
         }
       }
 
-      try (OutputStream out = exchange.getResponseBody()) {
-        Headers h = exchange.getResponseHeaders();
-        h.add("Content-Type", contentType);
-        if (contentType.equals(TYPES.get("json")) || contentType.equals(TYPES.get("js"))) {
-          h.add("Access-Control-Allow-Origin", "*");
-          h.add("Access-Control-Allow-Headers", "origin, content-type, accept");
+      int contentLength = -1;
+      if (content != null && content.length > 0) {
+        contentLength = content.length;
+      }
+      Headers h = exchange.getResponseHeaders();
+      h.add("Content-Type", contentType);
+      if (contentType.equals(TYPES.get("json")) || contentType.equals(TYPES.get("js"))) {
+        h.add("Access-Control-Allow-Origin", "*");
+        h.add("Access-Control-Allow-Headers", "origin, content-type, accept");
+      }
+
+      exchange.sendResponseHeaders(status, contentLength);
+
+      if (contentLength > 0) {
+        try (OutputStream out = exchange.getResponseBody()) {
+          out.write(content);
+          out.flush();
+          exchange.close();
         }
-
-        exchange.sendResponseHeaders(status, content.length);
-
-        out.write(content);
-        out.flush();
-        // Log the request
-        LOGGER.info(
-            String.format("%1$s - - %2$s \"%3$s %4$s\" %5$d -", exchange.getRemoteAddress().getAddress().toString(),
-                new SimpleDateFormat(HTTP_DATE_LOG_FORMAT).format(new Date()), exchange.getRequestMethod(),
-                exchange.getRequestURI().getPath(), status));
-        exchange.close();
       }
     }
-
+    
     private String getFileExtension(String filename) {
       int lastDot = filename.lastIndexOf('.');
       return lastDot > 0 ? filename.substring(lastDot + 1) : "";
@@ -230,11 +237,6 @@ class LocalDirectoryServer {
 
     private String getErrorHtml(int status, String error, String text) {
       return String.format(ERROR_HTML_TEMPLATE, status, error, text);
-    }
-
-    private static String getLastPathComponent(String uriPath) {
-      String[] pathComponents = uriPath.split("/");
-      return pathComponents[pathComponents.length - 1];
     }
   }
 }
