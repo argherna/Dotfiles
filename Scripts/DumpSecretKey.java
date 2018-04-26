@@ -16,11 +16,12 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.util.Base64;
 
 /**
  * Dumps a secret key as a raw string from a Java JCEKS keystore.
  */
-class DumpRawSecretKey {
+class DumpSecretKey {
 
   /**
    * Main function.
@@ -39,6 +40,7 @@ class DumpRawSecretKey {
     String filename = null;
     char[] keypass = null;
     String keystorename = null;
+    boolean raw = false;
     char[] storepass = null;
     String storetype = "jceks";
 
@@ -59,6 +61,9 @@ class DumpRawSecretKey {
           break;
         case "-keystore":
           keystorename = args[++argIdx];
+          break;
+        case "-raw":
+          raw = true;
           break;
         case "-storepass":
           storepass = args[++argIdx].toCharArray();
@@ -114,7 +119,8 @@ class DumpRawSecretKey {
         System.exit(1);
       }
 
-      String key = new String(encoded);
+      String key = raw ? new String(encoded) : 
+        new String(Base64.getEncoder().encode(encoded));
       out.print(key);
     } catch (IOException | GeneralSecurityException e) {
       System.err.printf("Failure! %s%n", e.getMessage());
@@ -136,10 +142,11 @@ class DumpRawSecretKey {
   }
 
   private static void showUsage() {
-    System.err.printf("Usage: %s [OPTION]%n", DumpRawSecretKey.class.getName());
+    System.err.printf("Usage: %s [OPTION]%n", DumpSecretKey.class.getName());
     System.err.println();
-    System.err.println("Dumps raw secret key from a keystore; useful for dumping");
-    System.err.println("passwords saved in a keystore added by the keytool command");
+    System.err.println("Dumps base64 encoded (or raw if specified) secret key "
+    + "from a keystore; useful");
+    System.err.println("for dumping passwords saved in a keystore added by the keytool command");
     System.err.println("-importpass");
     System.err.println();
     System.err.println("Options:");
@@ -149,6 +156,7 @@ class DumpRawSecretKey {
     System.err.println(" -help                 show this message and exit");
     System.err.println(" -keypass <arg>        key password");
     System.err.println(" -keystore <keystore>  keystore name");
+    System.err.println(" -raw                  dump the raw value (useful for passwords)");
     System.err.println(" -storepass <arg>      keystore password");
     System.err.println(" -storetype <arg>      keystore type");
   }
