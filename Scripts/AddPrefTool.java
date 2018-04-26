@@ -177,7 +177,7 @@ class AddPrefTool {
   private static void showUsage() {
     System.err.printf("Usage: %s [OPTIONS] %n", AddPrefTool.class.getName());
     System.err.println();
-    System.err.println("Adds preferences to the named store (default is user)");
+    System.err.println("Adds preferences to the named root (default is user)");
     System.err.println();
     System.err.println("Options:");
     System.err.println();

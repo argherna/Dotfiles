@@ -109,7 +109,7 @@ class RmPref {
   private static void showUsage() {
     System.err.printf("Usage: %s [OPTIONS] %n", RmPref.class.getName());
     System.err.println();
-    System.err.println("Adds preferences to the named store (default is user)");
+    System.err.println("Removes preferences to the named root (default is user)");
     System.err.println();
     System.err.println("Options:");
     System.err.println();

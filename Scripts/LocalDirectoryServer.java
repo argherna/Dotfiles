@@ -49,10 +49,6 @@ class LocalDirectoryServer {
  
   private static final Logger LOGGER = Logger.getLogger(
     LocalDirectoryServer.class.getName());
- 
-  private final Map<String, Path> directoriesToServe = new HashMap<>();
-
-  private final HttpServer httpServer;
 
   /**
    * HTTP server that serves files out of a directory.
@@ -92,19 +88,21 @@ class LocalDirectoryServer {
       }
     }
 
-    final LocalDirectoryServer server;
-
+    final HttpServer httpServer;
     try {
-      server = new LocalDirectoryServer(port, directoriesToServe);
-
+      httpServer = HttpServer.create(new InetSocketAddress(port), 0);
       Runtime.getRuntime().addShutdownHook(new Thread(){
         @Override
         public void run() {
-          server.shutdown();
+          LOGGER.warning("Stopping HTTP server...");
+          httpServer.stop(0);
         }
       });
-
-      server.serve();
+      for (String path : directoriesToServe.keySet()) {
+        httpServer.createContext(path, 
+          new LocalDirectoryHttpHandler(directoriesToServe.get(path)));
+      }
+      httpServer.start();
     } catch (Exception e) {
       System.err.printf("%s%n", e.getMessage());
       if (e.getCause() != null) {
@@ -116,29 +114,16 @@ class LocalDirectoryServer {
     }
   }
 
-  LocalDirectoryServer(int port, Map<String, Path> directoriesToServe) 
-    throws IOException {
-    httpServer = HttpServer.create(new InetSocketAddress(port), 0);
-    this.directoriesToServe.putAll(directoriesToServe);
-  }
-
-  void serve() {
-    for (String path : directoriesToServe.keySet()) {
-      HttpHandler localDirectoryHttpHandler = new LocalDirectoryHttpHandler(
-        directoriesToServe.get(path));
-      httpServer.createContext(path, localDirectoryHttpHandler);
-    }
-    httpServer.start();
-  }
-
-  void shutdown() {
-    httpServer.stop(0);
-  }
-
   /**
    * Handles requests for static files from a directory.
    */
   private static class LocalDirectoryHttpHandler implements HttpHandler {
+
+    private static final int HTTP_OK = 200;
+
+    private static final int HTTP_NOT_FOUND = 404;
+
+    private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
 
     private static final String ERROR_HTML_TEMPLATE = 
       "<html><head><title>%1$d %2$s</title></head><body><h1>%2$s</h1>"
@@ -170,15 +155,14 @@ class LocalDirectoryServer {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-
       String filename = exchange.getRequestURI().getPath().substring(1);
       Path file = path.resolve(filename);
       LOGGER.fine(String.format("Serving %s", file.toFile().getAbsolutePath()));
-      int status = 200;
+      int status = HTTP_OK;
       byte[] content = new byte[0];
       String contentType = "";
       if (!file.toFile().exists()) {
-        status = 404;
+        status = HTTP_NOT_FOUND;
         contentType = TYPES.get("html");
         content = getErrorHtml(status, "Not Found", 
           exchange.getRequestURI().getPath() + " not found on the server.")
@@ -197,7 +181,7 @@ class LocalDirectoryServer {
           if (e instanceof IOException) {
             throw (IOException) e;
           } else {
-            status = 500;
+            status = HTTP_INTERNAL_SERVER_ERROR;
             contentType = TYPES.get("html");
             content = getErrorHtml(status, 
               "Internal Server Error", 
@@ -208,25 +192,32 @@ class LocalDirectoryServer {
         }
       }
 
-      int contentLength = -1;
-      if (content != null && content.length > 0) {
-        contentLength = content.length;
-      }
+      doSend(exchange, contentType, content, status);
+    }
+
+    private void doSend(HttpExchange exchange, String contentType, 
+      byte[] content, int status) throws IOException {
       Headers h = exchange.getResponseHeaders();
       h.add("Content-Type", contentType);
-      if (contentType.equals(TYPES.get("json")) || contentType.equals(TYPES.get("js"))) {
-        h.add("Access-Control-Allow-Origin", "*");
-        h.add("Access-Control-Allow-Headers", "origin, content-type, accept");
-      }
+      doMinimalCORS(contentType, h);
 
+      int contentLength = (content != null && content.length > 0) ? 
+        content.length : -1;
       exchange.sendResponseHeaders(status, contentLength);
-
       if (contentLength > 0) {
         try (OutputStream out = exchange.getResponseBody()) {
           out.write(content);
           out.flush();
-          exchange.close();
         }
+      }
+      exchange.close();
+    }
+
+    private void doMinimalCORS(String contentType, Headers responseHeaders) {
+      if (contentType.equals(TYPES.get("json")) || 
+        contentType.equals(TYPES.get("js"))) {
+        h.add("Access-Control-Allow-Origin", "*");
+        h.add("Access-Control-Allow-Headers", "origin, content-type, accept");
       }
     }
     
