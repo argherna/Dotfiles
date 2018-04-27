@@ -106,7 +106,7 @@ def format_to_screen(rpt_issues, outfile):
                'Updated At', 'Closed At']
 
     headers_fmt = '{:<8}{:<10}{:<10}{:<15} {:<5}{:>21}{:>21}'
-    print headers_fmt.format(*headers)
+    print(headers_fmt.format(*headers))
     row_fmt = '{:>6}  {:<10}{:<10}{:<15} {:<5}{:>21}{:>21}'
 
     for rpt_issue in rpt_issues:
@@ -128,7 +128,7 @@ def format_to_screen(rpt_issues, outfile):
 if __name__ == '__main__':
     parser = ArgumentParser(description=DESC,
                             formatter_class=RawDescriptionHelpFormatter)
-    parser.add_argument('--logging_level', nargs=1, type=str,
+    parser.add_argument('-L', '--logging_level', nargs=1, type=str,
                         choices=['DEBUG', 'INFO',
                                  'WARNING', 'ERROR', 'CRITICAL'],
                         default='ERROR',

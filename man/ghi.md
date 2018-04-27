@@ -38,10 +38,10 @@ Retrieve issues json from the GitHub repository displaying it in raw json.
 <dl>
   <dt><code>-a &lt;USER[:PASS]&gt;</code>
   <dd>Basic authentication credentials. If the password is not supplied, program will prompt for it.
-  <dt><code>-L &lt;LEVEL&gt;</code>
-  <dd>Set the logging level to one of <em>DEBUG</em>, <em>INFO</em>, <em>WARNING</em>, <em>ERROR</em>, or <em>CRITICAL</em> (default is <em>ERROR</em>).
   <dt><code>-h</code>
   <dd>Shows a help message and exits.
+  <dt><code>-L &lt;LEVEL&gt;</code>
+  <dd>Set the logging level to one of <em>DEBUG</em>, <em>INFO</em>, <em>WARNING</em>, <em>ERROR</em>, or <em>CRITICAL</em> (default is <em>ERROR</em>).
 </dl>
 
 ## EXIT STATUS
