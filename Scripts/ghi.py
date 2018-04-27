@@ -79,7 +79,7 @@ def list_main(args):
 
     r = requests.get(req_url, auth=(get_auth(args.auth[0])))
     if r.status_code != 200:
-        print r.status_code
+        print(r.status_code)
         raise GitHubUnsuccessError('Failed to get issues!')
 
     issues = r.json()
@@ -93,7 +93,7 @@ if __name__ == '__main__':
     parser.add_argument('-a', '--auth', nargs=1, type=str,
                         metavar='USER[:PASS]',
                         help='Basic authentication credentials')
-    parser.add_argument('--logging_level', nargs=1, type=str,
+    parser.add_argument('-L', '--logging_level', nargs=1, type=str,
                         choices=['DEBUG', 'INFO',
                                  'WARNING', 'ERROR', 'CRITICAL'],
                         default='ERROR',
@@ -128,6 +128,6 @@ if __name__ == '__main__':
         else:
             sys.stderr.write('Unknown function!')
             sys.exit(1)
-    except GitHubUnsuccessError, (message):
+    except GitHubUnsuccessError as message:
         sys.stderr.write('%s Exiting!\n' % (message))
         sys.exit(1)
