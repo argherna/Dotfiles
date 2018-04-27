@@ -38,27 +38,21 @@ class AddPrefTool {
       String arg = args[argIdx];
       switch (arg) {
         case "-C":
-        case "--class":
           classname = nextStringArgValue(arg, ++argIdx, args);
           break;
         case "-h":
-        case "--help":
           showUsageAndExit(2);
           break;
         case "-N":
-        case "--node-name":
           nodename = nextStringArgValue(arg, ++argIdx, args);
           break;
         case "-n":
-        case "--name":
           name = nextStringArgValue(arg, ++argIdx, args);
           break;
         case "-S":
-        case "--system-root":
           systemRoot = true;
           break;
-        case "-t":
-        case "--type":
+        case "-T [":
           try {
             type = PrefType.valueOf(nextStringArgValue(arg, ++argIdx, args).toUpperCase());
           } catch (IllegalArgumentException e) {
@@ -67,15 +61,12 @@ class AddPrefTool {
           }
           break;
         case "-U":
-        case "--user-root":
           systemRoot = false;
           break;
         case "-V":
-        case "--verbose":
           verbose = true;
           break;
         case "-v":
-        case "--value":
           value = nextStringArgValue(arg, ++argIdx, args);
           break;
       }
@@ -181,21 +172,15 @@ class AddPrefTool {
     System.err.println();
     System.err.println("Options:");
     System.err.println();
-    System.err.println(" -C, --class <name>");
-    System.err.println("               Specify the fully qualified class name for the preference node");
-    System.err.println(" -h, --help    Show this help and exit");
-    System.err.println(" -N, --node-name");
-    System.err.println("               Set the name for this preference node");
-    System.err.println(" -n, --name <prefname>");
-    System.err.println("               Preference name");
-    System.err.println(" -S, --system-root");
-    System.err.println("               Add preferences to the system root");
-    System.err.println(" -t, --type <typename>");
-    System.err.println("               Preference type (boolean, double, float, int, long, string)");
-    System.err.println(" -U, --user-root");
-    System.err.println("               Add preferences to the system root");
-    System.err.println(" -v, --value <prefvalue>");
-    System.err.println("               Preference value");
+    System.err.println(" -C <classname> Specify the fully qualified class name for the preference node");
+    System.err.println(" -h             Show this help and exit");
+    System.err.println(" -N <nodename>  Set the name for this preference node");
+    System.err.println(" -n <prefname>  Preference name");
+    System.err.println(" -S             Add preferences to the system root");
+    System.err.println(" -T <typename>  Preference type (boolean, double, float, int, long, string)");
+    System.err.println(" -U             Add preferences to the system root");
+    System.err.println(" -V             Verbose output");
+    System.err.println(" -v <prefvalue> Preference value");
     System.err.println();
     System.err.println("NOTES:");
     System.err.println(" - To use the --class/-C option, the specified class must be on the classpath.");

@@ -31,27 +31,21 @@ class ExportPrefsTool {
       String arg = args[argIdx];
       switch (arg) {
         case "-C":
-        case "--class":
           classname = nextStringArgValue(arg, ++argIdx, args);
           break;
         case "-h":
-        case "--help":
           showUsageAndExit(2);
           break;
         case "-N":
-        case "--node-name":
           nodename = nextStringArgValue(arg, ++argIdx, args);
           break;
         case "-S":
-        case "--system-root":
           systemRoot = true;
           break;
         case "-t":
-        case "--export-tree":
           exportTree = true;
           break;
         case "-U":
-        case "--user-root":
           systemRoot = false;
           break;
         default:
@@ -121,20 +115,15 @@ class ExportPrefsTool {
     System.err.println();
     System.err.println("Arguments:");
     System.err.println();
-    System.err.println("  <filename>   Optional file name to write the preferences to.");
+    System.err.println("  <filename>    Optional file name to write the preferences to.");
     System.err.println("Options:");
     System.err.println();
-    System.err.println(" -C, --class <name>");
-    System.err.println("               Specify the fully qualified class name for the preference node");
-    System.err.println(" -t, --export-tree");
-    System.err.println("               Export whole subtree");
-    System.err.println(" -h, --help    Show this help and exit");
-    System.err.println(" -N, --node-name");
-    System.err.println("               Set the name for this preference node");
-    System.err.println(" -S, --system-root");
-    System.err.println("               Add preferences to the system root");
-    System.err.println(" -U, --user-root");
-    System.err.println("               Add preferences to the system root");
+    System.err.println(" -C <classname> Specify the fully qualified class name for the preference node");
+    System.err.println(" -t             Export whole subtree");
+    System.err.println(" -h             Show this help and exit");
+    System.err.println(" -N <nodename>  Set the name for the preference node to export");
+    System.err.println(" -S             Export preferences from the system root");
+    System.err.println(" -U             Export preferences from the user root");
     System.err.println();
     System.err.println("NOTES:");
     System.err.println(" - If <filename> is not specified, preferences XML are written to System.out.");
