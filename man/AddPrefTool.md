@@ -53,7 +53,7 @@ Options for all preferences tools are similar to communicate intent.
   <dt><code>1</code>
   <dd>One of the following occurred:
   <ul>
-    <li>A required option was not set (either `-n` or `-v`).
+    <li>A required option was not set (either <code>-n</code> or <code>-v</code>).
     <li>An option with a required argument was missing its argument.
     <li>An exception was thrown when saving the preference name-value pair.
   </ul>
