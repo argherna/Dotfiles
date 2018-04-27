@@ -22,17 +22,17 @@ The options defined here are similar to `keytool` options to communicate intent.
 
 <dl>
 <dt><code>-alias &lt;alias&gt;</code>
-<dd>alias name of the entry to process (default is <strong>mykey</strong>).
+<dd>alias name of the entry to process (default is <em>mykey</em>).
 <dt><code>-file &lt;filename&gt;</code>
-<dd>output file name (default is to print to stdout).
+<dd>output file name (default is to print to <em>System.out</em>).
 <dt><code>-keypass &lt;arg&gt;</code>
 <dd>key password (default is the value of <code>-storepass</code>).
 <dt><code>-keystore &lt;keystore&gt;</code>
-<dd>keystore name (default is <strong>$HOME/.keystore</strong>).
+<dd>keystore name (default is <em>$HOME/.keystore</em>).
 <dt><code>-storepass &lt;arg&gt;</code>
 <dd>keystore password.
 <dt><code>-storetype &lt;arg&gt;</code>
-<dd>keystore type (default is <strong>jceks</strong>).
+<dd>keystore type (default is <em>jceks</em>).
 </dl>
 
 ## EXIT STATUS
@@ -47,15 +47,15 @@ The options defined here are similar to `keytool` options to communicate intent.
 <li>An exception was thrown.
 </ul>
 <dt><code>2</code>
-<dd>Either no options were set or the `-help` option was set. 
+<dd>Either no options were set or the <code>-help</code> option was set. 
 </dl>
 
 ## NOTES
 
-* If a `-keystore` is not set, the default is **$HOME/.keystore**.
-* If `-file` is not set, the default is to write the output to the screen.
-* The default `-storetype` is **jceks**.
-* The default `-alias` is **mykey**.
+* If a `-keystore` is not set, the default is *$HOME/.keystore*.
+* If `-file` is not set, the default is to write the output to *System.out*.
+* The default `-storetype` is *jceks*.
+* The default `-alias` is *mykey*.
 
 ## SEE ALSO
 
