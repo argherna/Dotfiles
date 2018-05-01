@@ -185,7 +185,6 @@ class JavadocServer {
       String arg = args[argIdx];
       switch (arg) {
         case "-h":
-        case "--help":
           showUsageAndExit(2);
           break;
         default:
@@ -266,12 +265,12 @@ class JavadocServer {
     System.err.println();
     System.err.println("Arguments:");
     System.err.println();
-    System.err.println(" port          port the server will listen on "
+    System.err.println(" port  port the server will listen on "
      + "(default is " + DEFAULT_HTTP_PORT + ")");
     System.err.println();
     System.err.println("Options:");
     System.err.println();
-    System.err.println(" -h, --help    show this help and exit");
+    System.err.println(" -h    show this help and exit");
   }
  
   /**
