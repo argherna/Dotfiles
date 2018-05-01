@@ -22,7 +22,7 @@ class ImportPrefsTool {
 
     String filename = "";
     if (args.length > 0) {
-      if (args[0].equals("-h") || args[0].equals("--help")) {
+      if (args[0].equals("-h")) {
         showUsageAndExit(2);
       } else {
         filename = args[0];
