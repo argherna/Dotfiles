@@ -91,6 +91,10 @@ class ImportBase64SecretKey {
       showUsageAndExit(1);
     }
 
+    if (isNullOrEmpty(filename)) {
+      System.err.println("Must specify an input file name");
+      showUsageAndExit(1);
+    }
     if (isNullOrEmpty(keystorename)) {
       System.err.println("Must specify a keystore");
       showUsageAndExit(1);
@@ -154,7 +158,7 @@ class ImportBase64SecretKey {
     System.err.println("Options:");
     System.err.println();
     System.err.println(" -alias <alias>        alias name of the entry to process");
-    System.err.println(" -file <filename>      output file name (default is write to stdout)");
+    System.err.println(" -file <filename>      input file name with a single base64-encoded string");
     System.err.println(" -help                 show this message and exit");
     System.err.println(" -keyalg <arg>         key algorithm name");
     System.err.println(" -keypass <arg>        key password");
