@@ -54,23 +54,18 @@ class JdbcConnectTest {
       String arg = args[argIdx];
       switch (arg) {
         case "-h":
-        case "--help":
           showUsageAndExit(2);
           break;
         case "-q":
-        case "--quiet":
           quiet = true;
           break;
         case "-U":
-        case "--url":
           databaseUrl = args[++argIdx];
           break;
         case "-u":
-        case "--username":
           username = args[++argIdx];
           break;
         case "-w":
-        case "--password":
           password = args[++argIdx];
           break;
         default:
@@ -133,11 +128,11 @@ class JdbcConnectTest {
     System.err.println();
     System.err.println("Options:");
     System.err.println();
-    System.err.println(" -h, --help                    Show this help and exit");
-    System.err.println(" -q, --quiet                   Prints OK if set, otherwise print database info");
-    System.err.println(" -U, --url <database-url>      Database Url");
-    System.err.println(" -u, --username <username>     Username for database");
-    System.err.println(" -w, --password <password>     Password for database (prompted if not set)");
+    System.err.println(" -h                Show this help and exit");
+    System.err.println(" -q                Prints OK if set, otherwise print database info");
+    System.err.println(" -U <database-url> Database Url");
+    System.err.println(" -u <username>     Username for database");
+    System.err.println(" -w <password>     Password for database (prompted if not set)");
   }
 
   private static char[] getPassword(String passwordType) {
