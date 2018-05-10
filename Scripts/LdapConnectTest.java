@@ -50,7 +50,6 @@ class LdapConnectTest {
           bindDn = args[++argIdx];
           break;
         case "-h":
-        case "--help":
           showUsageAndExit(2);
           break;
         case "-H":
@@ -143,7 +142,7 @@ class LdapConnectTest {
     System.err.println("Options:");
     System.err.println();
     System.err.println(" -D binddn        bind DN");
-    System.err.println(" -h, --help       Show this help and exit");
+    System.err.println(" -h               Show this help and exit");
     System.err.println(" -H URL           LDAP URL");
     System.err.println(" -w <password>    Bind password");
     System.err.println(" -W               Prompt for password");
