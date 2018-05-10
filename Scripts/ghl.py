@@ -227,6 +227,6 @@ if __name__ == '__main__':
         else:
             sys.stderr.write('Unknown function!')
             sys.exit(1)
-    except GitHubUnsuccessError, (message):
+    except GitHubUnsuccessError as message:
         sys.stderr.write('%s Exiting!\n' % (message))
         sys.exit(1)

@@ -113,7 +113,7 @@ class OutputThing(object):
         if req_line.tokens is not None:
             try:
                 self.csv_writer.writerow(req_line.tokens)
-            except RequestLineError, (message):
+            except RequestLineError as message:
                 sys.stderr.write('%s, Skipping.\n' % (message))
 
     def write_header(self):
@@ -207,10 +207,10 @@ if __name__ == '__main__':
 
             for line in log_in:
                 csv_out.write_line(RequestLine(line))
-    except InputThingError, (message):
+    except InputThingError as message:
         sys.stderr.write("%s Exiting!\n" % (message))
         sys.exit(1)
-    except OutputThingError, (message):
+    except OutputThingError as message:
         sys.stderr.write("%s Exiting!\n" % (message))
         sys.exit(1)
     except KeyboardInterrupt:
