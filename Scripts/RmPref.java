@@ -115,7 +115,7 @@ class RmPref {
     System.err.println(" -U             Add preferences to the system root");
     System.err.println();
     System.err.println("NOTES:");
-    System.err.println(" - To use the --class/-C option, the specified class must be on the classpath.");
+    System.err.println(" - To use the -C option, the specified class must be on the classpath.");
     System.err.println(" - Only one of -C or -N can be set.");
     System.err.println(" - Only one of -S or -U can be set (-U is assumed if no option is set).");
     System.err.println(" - String is assumed if no -t option is set.");
