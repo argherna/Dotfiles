@@ -76,9 +76,13 @@ Omitting `-U` would have the same affect.
 
 ## NOTES
 
-Items below refer to the short options, however the notes apply to the companion long options.
-
 * When specifying the `-C` option, the named class has to be on the classpath when `java` is invoked.
+* Only one of `-C` or `-N` can be set.
+* If neither `-C` nor `-N` are set, the name-value pair is set just directly under the ***user root*** or ***system root*** depending on whether `-S` or `-U` is set.
+* Only one of `-S` or `-U` can be set.
+* `-U` is assumed if neither `-S` nor `-U` is set.
+* If `-t`|`--type` isn't set, String is assumed.
+* Adding an existing Preference will overwrite its value.* When specifying the `-C` option, the named class has to be on the classpath when `java` is invoked.
 * Only one of `-C` or `-N` can be set.
 * If neither `-C` nor `-N` are set, the name-value pair is set just directly under the ***user root*** or ***system root*** depending on whether `-S` or `-U` is set.
 * Only one of `-S` or `-U` can be set.
