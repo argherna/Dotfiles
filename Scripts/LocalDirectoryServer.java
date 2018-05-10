@@ -68,7 +68,7 @@ class LocalDirectoryServer {
       System.err.printf(
         "Usage: %s [port] <directory-to-serve:server-path> ...%n",
         LocalDirectoryServer.class.getName());
-      System.exit(1);
+      System.exit(2);
     }
 
     int port = DEFAULT_HTTP_PORT;
