@@ -1,25 +1,23 @@
 // Place your key bindings in this file to overwrite the defaults
 [
-    {
-        "key": "cmd+k u",
-        "command": "editor.action.transformToUppercase"
-    },
-    {
-        "key": "cmd+k l",
-        "command": "editor.action.transformToLowercase"
-    },
-    {
-        "key": "cmd+k k",
-        "command": "workbench.action.terminal.clear",
-        "when": "terminalFocus"
-    },
-    {
-        "key": "cmd+k",
-        "command": "-workbench.action.terminal.clear",
-        "when": "terminalFocus"
-    },
-    {
-        "key": "cmd+k cmd+m",
-        "command": "editor.action.toggleMinimap"
-    }
+ {
+   "key": "cmd+k u",
+   "command": "editor.action.transformToUppercase",
+   "when": "editorTextFocus"
+ },
+ {
+   "key": "cmd+k l",
+   "command": "editor.action.transformToLowercase",
+   "when": "editorTextFocus"
+ },
+ {
+   "key": "shift+cmd+m",
+   "command": "workbench.action.toggleMaximizedPanel",
+   "when": "terminalFocus"
+ },
+ {
+   "key": "cmd+k i",
+   "command": "editor.action.toggleMinimap",
+   "when": "editorTextFocus"
+ }
 ]
