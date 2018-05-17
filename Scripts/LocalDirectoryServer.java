@@ -24,6 +24,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -31,9 +32,13 @@ import java.security.KeyStore;
 import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.prefs.BackingStoreException;
+import java.util.prefs.Preferences;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -84,17 +89,14 @@ class LocalDirectoryServer {
    */
   public static void main (String... args) {
     if (args.length == 0) {
-      System.err.printf(
-        "Usage: %s [port] <directory-to-serve:server-path> ...%n",
-        LocalDirectoryServer.class.getName());
-      System.exit(2);
+      showUsageAndExit(2);
     }
 
     int httpPort = DEFAULT_HTTP_PORT;
     int httpsPort = DEFAULT_HTTPS_PORT;
     
-    Map<String, Path> httpDirsToServe = new HashMap<>();
-    Map<String, Path> httpsDirsToServe = new HashMap<>();
+    Map<String, Path> dirsToServeHttp = new HashMap<>();
+    Map<String, Path> dirsToServeHttps = new HashMap<>();
     
     try {
       for (int i = 0; i < args.length; i++) {
@@ -104,12 +106,12 @@ class LocalDirectoryServer {
         } else if (arg.equals("-S")) {
           httpsPort = Integer.valueOf(args[++i]);
         } else if (arg.startsWith("@")) {
-          processFileArgs(httpDirsToServe, httpsDirsToServe, httpPort, httpsPort, arg.substring(1));
+          processFileArgs(dirsToServeHttp, dirsToServeHttps, httpPort, httpsPort, arg.substring(1));
         } else {
-          processDirectoryToServeArgument(arg, httpDirsToServe, httpsDirsToServe);
+          processDirectoryToServeArgument(arg, dirsToServeHttp, dirsToServeHttps);
         }
       }
-      if (!httpsDirsToServe.isEmpty()) {
+      if (!dirsToServeHttps.isEmpty()) {
         InetSocketAddress address = new InetSocketAddress(httpsPort);
         String keystoreName = 
           System.getProperty("javax.net.ssl.keyStore") == null ? 
@@ -151,7 +153,7 @@ class LocalDirectoryServer {
 
         HttpsServer httpsServer = HttpsServer.create(address, 0);
         setExecutor(httpsServer);
-        addHandlersForPaths(httpsServer, httpsDirsToServe);
+        addHandlersForPaths(httpsServer, dirsToServeHttps);
         addShutdownHook(httpsServer);
         httpsServer.setHttpsConfigurator(new HttpsConfigurator(sslContext) {
           @Override
@@ -164,11 +166,11 @@ class LocalDirectoryServer {
         httpsServer.start();
       }
       
-      if (!httpDirsToServe.isEmpty()) {
+      if (!dirsToServeHttp.isEmpty()) {
         HttpServer httpServer = HttpServer.create(new InetSocketAddress(httpPort),
           0);
         setExecutor(httpServer);
-        addHandlersForPaths(httpServer, httpDirsToServe);
+        addHandlersForPaths(httpServer, dirsToServeHttp);
         addShutdownHook(httpServer);
         httpServer.start();
       }
@@ -183,8 +185,40 @@ class LocalDirectoryServer {
     }
   }
 
-  private static void processFileArgs(Map<String, Path> httpDirsToServe, 
-    Map<String, Path> httpsDirsToServe, int httpPort, int httpsPort, 
+  private static void showUsageAndExit(int status) {
+    showUsage();
+    System.exit(status);
+  }
+
+  private static void showUsage() {
+    System.err.printf("Usage: %s [OPTIONS] [ARGUMENTS]%n", 
+      LocalDirectoryServer.class.getName());
+    System.err.println();
+    System.err.println("Serves content from local directories");
+    System.err.println("CORS support for directories and MIME types are read "
+      + "from user preferences.");
+    System.err.println();
+    System.err.println("Arguments:");
+    System.err.println();
+    System.err.println(" directory-to-serve:server-path[:secure]");
+    System.err.println("                  Absolute path to serve, the url path ");
+    System.err.println("                  it will be served from, and optionally ");
+    System.err.println("                  to serve it under HTTPS (keyword is secure).");
+    System.err.println(" @<filename>      The name of a file containing the argument ");
+    System.err.println("                  described above or the options as described ");
+    System.err.println("                  below, one on each line.");
+    System.err.println();
+    System.err.println("Options:");
+    System.err.println();
+    System.err.println(" -H <http-port>   Port to serve HTTP from (default is "
+      + DEFAULT_HTTP_PORT + ").");
+    System.err.println(" -h               Show this help and exit");
+    System.err.println(" -S <https-port>  Port to serve HTTPS from (default "
+      + "is " +DEFAULT_HTTPS_PORT + ").");
+  }
+
+  private static void processFileArgs(Map<String, Path> dirsToServeHttp, 
+    Map<String, Path> dirsToServeHttps, int httpPort, int httpsPort, 
     String name) throws IOException {
     String filename = name;
     // Prepend the current directory if the path isn't absolute.
@@ -202,22 +236,22 @@ class LocalDirectoryServer {
         } else if (line.startsWith("-S")) {
           httpsPort = Integer.valueOf(line.split(" ")[1]);
         } else {
-          processDirectoryToServeArgument(line, httpDirsToServe, httpsDirsToServe);
+          processDirectoryToServeArgument(line, dirsToServeHttp , dirsToServeHttps);
         }
       }
     }
   }
 
   private static void processDirectoryToServeArgument(String arg, 
-    Map<String, Path> httpDirsToServe, Map<String, Path> httpsDirsToServe) {
+    Map<String, Path> dirsToServeHttp, Map<String, Path> dirsToServeHttps) {
     String[] service = arg.split(":");
     if (service.length == 2) {
-      putIfPathExists(httpDirsToServe, service[0], service[1]);
+      putIfPathExists(dirsToServeHttp  , service[0], service[1]);
     } else if (service.length == 3) {
       if (service[2].equalsIgnoreCase("secure")) {
-        putIfPathExists(httpsDirsToServe, service[0], service[1]);
+        putIfPathExists(dirsToServeHttps, service[0], service[1]);
       } else {
-        putIfPathExists(httpDirsToServe, service[0], service[1]);
+        putIfPathExists(dirsToServeHttp  , service[0], service[1]);
       }
     } else {
       throw new IllegalArgumentException("Can't parse argument " + arg 
@@ -266,7 +300,15 @@ class LocalDirectoryServer {
 
     private static final int HTTP_OK = 200;
 
+    private static final int HTTP_NO_CONTENT = 204;
+
+    private static final int HTTP_FORBIDDEN = 403;
+
     private static final int HTTP_NOT_FOUND = 404;
+
+    private static final int HTTP_METHOD_NOT_ALLOWED = 405;
+
+    private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
 
     private static final String ERROR_HTML_TEMPLATE = 
       "<html><head><title>%1$d %2$s</title></head><body><h1>%2$s</h1>"
@@ -299,37 +341,129 @@ class LocalDirectoryServer {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-      String filename = exchange.getRequestURI().getPath()
-        .replace(exchange.getHttpContext().getPath() + "/", "");
-      Path file = path.resolve(filename);
-      LOGGER.fine(String.format("Serving %s", file.toFile().getAbsolutePath()));
-      int status = HTTP_OK;
-      byte[] content = new byte[0];
-      String contentType = "";
-      if (!file.toFile().exists()) {
-        status = HTTP_NOT_FOUND;
-        contentType = TYPES.get("html");
-        content = getErrorHtml(status, "Not Found", 
-          exchange.getRequestURI().getPath() + " not found on the server.")
-          .getBytes();
-      } 
-
-      if (content.length > 0) {
-        doSend(exchange, contentType, content, status);
+      if (exchange.getRequestMethod().equals("GET")) {
+        doGet(exchange);
+      } else if (exchange.getRequestMethod().equals("OPTIONS")) {
+        doOptions(exchange);
       } else {
-        doSend(exchange, file, status);
+        doMethodNotAllowed(exchange);
       }
+    }
+
+    private void doGet(HttpExchange exchange) throws IOException {
+      Path file = path.resolve(exchange.getRequestURI().getPath()
+        .replace(exchange.getHttpContext().getPath() + "/", ""));
+      
+      if (!file.toFile().exists()) {
+        doNotFound(exchange);
+      } else {
+        LOGGER.fine(() -> String.format("Serving %s", file.toString()));
+        doSend(exchange, file, HTTP_OK);
+      }
+    }
+
+    private void doOptions(HttpExchange exchange) throws IOException {
+      String node = LocalDirectoryServer.class.getSimpleName() + 
+        "/corsSupport" + exchange.getRequestURI().getPath();
+      try {
+        if (!Preferences.userRoot().nodeExists(node)) {
+          doMethodNotAllowed(exchange);
+          return;
+        }
+  
+        Preferences corsSupport = Preferences.userRoot().node(node);
+        String origin = corsSupport.get("allowedOrigins", "*");
+        String directory = corsSupport.get("directory", "");
+        
+        Headers requestHeaders = exchange.getRequestHeaders();
+        
+        if (directory.equals(path.toString())) {
+          if (origin.equals("*")) {
+            addCorsHeaders(exchange, corsSupport, origin);
+          } else {
+            List<String> origins = List.of(origin.split(","));
+            String requestOrigin = requestHeaders.getFirst("Origin");
+            if (origins.contains(URI.create(requestOrigin).getHost())) {
+              addCorsHeaders(exchange, corsSupport, requestOrigin);
+            } else {
+              doForbidden(exchange);
+              return;
+            }
+          }
+        } else {
+          doMethodNotAllowed(exchange);
+          return;
+        }
+        doNoContent(exchange);
+      } catch (BackingStoreException e) {
+        LOGGER.log(Level.FINE, "Internal error!",  e);
+        doInternalServerError(exchange);
+        return;
+      }
+    }
+
+    private void addCorsHeaders(HttpExchange exchange) {
+      Preferences corsSupport = Preferences.userRoot()
+        .node(LocalDirectoryServer.class.getSimpleName() + "/corsSupport" + 
+          exchange.getHttpContext().getPath());
+      String origin = exchange.getRequestHeaders().getFirst("Origin");
+      if (origin == null) {
+        origin = ""; // ¯\_(ツ)_/¯
+      }
+      addCorsHeaders(exchange, corsSupport, origin);
+    }
+
+    private void addCorsHeaders(HttpExchange exchange, Preferences corsSupport, 
+      String origin) throws IOException {
+      List<String> corsHeaders = List.of(corsSupport.get("headers", "").split(","));
+      Headers responseHeaders = exchange.getResponseHeaders();
+      for (String corsHeader : corsHeaders) {
+        if (corsHeader.equals("Access-Control-Allow-Origin")) {
+          responseHeaders.put("Access-Control-Allow-Origin", List.of(origin));
+        } else if (corsHeader.equals("Access-Control-Allow-Methods")) {
+          responseHeaders.put("Access-Control-Allow-Methods", List.of("GET"));
+        }
+      }
+    }
+
+    private void doNotFound(HttpExchange exchange) {
+      doSend(exchange, TYPES.get("html"), getErrorHtml(status, "Not Found", 
+      exchange.getRequestURI().getPath() + " not found on the server.")
+        .getBytes(), HTTP_NOT_FOUND);
+    }
+
+    private void doMethodNotAllowed(HttpExchange exchange) 
+      throws IOException {
+      doSend(exchange, TYPES.get("html"), getErrorHtml(HTTP_METHOD_NOT_ALLOWED,
+        "Method not allowed", exchange.getRequestMethod() + 
+        " not allowed on this server!").getBytes(), HTTP_METHOD_NOT_ALLOWED);
+    }
+
+    private void doForbidden(HttpExchange exchange) throws IOException {
+      doSend(exchange, TYPES.get("html"), getErrorHtml(HTTP_FORBIDDEN, 
+        "Method not allowed", exchange.getRequestMethod() + 
+        " not allowed on this server!").getBytes(), HTTP_FORBIDDEN);
+    }
+
+    private void doInternalServerError(HttpExchange exchange) 
+      throws IOException {
+      doSend(exchange, TYPES.get("html"), 
+        getErrorHtml(HTTP_INTERNAL_SERVER_ERROR, "Internal Server Error", 
+        "An internal server error occurred, check the logs.").getBytes(), 
+        HTTP_INTERNAL_SERVER_ERROR);
     }
 
     private void doSend(HttpExchange exchange, Path file, int status)
       throws IOException {
+      String probed = Files.probeContentType(file);
+      String contentType = probed == null ? probed : TYPES.get("default");
+      addContentType(exchange.getResponseHeaders(), contentType);
+      if (shouldAddCorsHeaders(contentType, exchange.getHttpContext().getPath())) {
+        addCorsHeaders(exchange);
+      } 
       int contentLength = (int) file.toFile().length();
-      String contentType = Files.probeContentType(file);
-      LOGGER.fine("file length = " + contentLength + ", contentType = " + contentType);
-
-      Headers h = exchange.getResponseHeaders();
-      h.add("Content-Type", contentType);
-      doMinimalCORS(contentType, h);
+      LOGGER.fine("file length = " + contentLength + ", contentType = " + 
+        contentType);
       exchange.sendResponseHeaders(status, contentLength);
       if (contentLength > 0) {
         Files.copy(file, exchange.getResponseBody());
@@ -337,12 +471,13 @@ class LocalDirectoryServer {
       exchange.close();
     }
 
+    private void doNoContent(HttpExchange exchange) throws IOException {
+      doSend(exchange, null, null, HTTP_NO_CONTENT);
+    }
+
     private void doSend(HttpExchange exchange, String contentType, 
       byte[] content, int status) throws IOException {
-      Headers h = exchange.getResponseHeaders();
-      h.add("Content-Type", contentType);
-      doMinimalCORS(contentType, h);
-
+      addContentType(exchange.getResponseHeaders(), contentType);
       int contentLength = (content != null && content.length > 0) ? 
         content.length : -1;
       exchange.sendResponseHeaders(status, contentLength);
@@ -355,11 +490,17 @@ class LocalDirectoryServer {
       exchange.close();
     }
 
-    private void doMinimalCORS(String contentType, Headers responseHeaders) {
-      if (contentType.equals(TYPES.get("json")) || 
-        contentType.equals(TYPES.get("js"))) {
-        responseHeaders.add("Access-Control-Allow-Origin", "*");
-        responseHeaders.add("Access-Control-Allow-Headers", "origin, content-type, accept");
+    private boolean shouldAddCorsHeaders(String contentType, String requestPath) {
+      Preferences corsSupport = Preferences.userRoot()
+        .node(LocalDirectoryServer.class.getSimpleName() + "/corsSupport" + 
+          requestPath);
+      return List.of(corsSupport.get("MIMETypes", "").split(","))
+        .contains(contentType);
+    }
+
+    private void addContentType(Headers responseHeaders, String contentType) {
+      if (contentType != null && !contentType.isEmpty()) {
+        responseHeaders.add("Content-Type", contentType);
       }
     }
 

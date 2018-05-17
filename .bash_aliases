@@ -268,6 +268,17 @@ ENDOFHELP
 
 alias tp='test_port'
 
+file_size() {
+  if [ $# -eq 0 ]; then
+    echo "Oh dear"
+  fi
+
+  FNAME=$1
+  printf "%d" $(wc -c <$FNAME)
+}
+
+alias fsz='file_size'
+
 
 # ------------------------------------------------------------------------------
 #                           Terrgrunt and Terraform

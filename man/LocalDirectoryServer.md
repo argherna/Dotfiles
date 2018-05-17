@@ -7,8 +7,9 @@
 ## SYNOPSIS
 
 ```bash
-    bash LocalDirectoryServer.java [port] \
-      <directory-to-serve:server-path> ...
+    bash LocalDirectoryServer.java [-H <http-port>] \
+      [-S <https-port>] [@<filename> ...] \
+      <directory-to-serve:server-path[:secure]> ...
 ```
 
 ## DESCRIPTION
@@ -18,15 +19,28 @@ Gives access to files through a web browser. Intended for some of the following 
 * Testing static websites.
 * Serve json files to develop ajax calls from other pages.
 
-A port number can be specified but *8086* is the default.
+The server supports HTTP and HTTPS. Port numbers can be set at startup but *8086* is the default for HTTP and *4436* is the default for HTTPS.
+
+The server can have settings stored for CORS. See `LocalDirectoryServer-config` for details.
 
 ## ARGUMENTS
 
 <dl>
-  <dt><code>port</code>
-  <dd>A port number to serve the files from (default is <em>8086</em>).
-  <dt><code>directory-to-serve:server-path</code>
-  <dd>Directory to serve files from and server path separated by a ':'. Directories should be specified as absolute paths and the server path should begin with '/'.
+  <dt><code>@&lt;filename&gt;</code>
+  <dd>File containing an argument on each line. Each argument can be of the form below or can specify an option with its value. If the filename is not an absolute path, then the current user directory is searched for the file.
+  <dt><code>directory-to-serve:server-path[:secure]</code>
+  <dd>Directory to serve files from and server path separated by a ':'. Directories should be specified as absolute paths and the server path should begin with '/'. If <code>:secure</code> is at the end of the argument, serve this directory under HTTPS.
+</dl>
+
+## OPTIONS
+
+<dl>
+  <dt><code>-H &lt;http-port&gt;</code>
+  <dd>Port to serve directories not marked <code>:secure</code> under HTTP (default is <em>8086</em>).
+  <dt><code>-h</code>
+  <dd>shows a help message and exits
+  <dt><code>-S &lt;https-port&gt;</code>
+  <dd>Port to serve directories marked <code>:secure</code> under HTTPS (default is <em>4436</em>).
 </dl>
 
 ## EXIT STATUS
@@ -37,7 +51,7 @@ A port number can be specified but *8086* is the default.
   <dt><code>1</code>
   <dd>An unrecoverable error occurred during service.
   <dt><code>2</code>
-  <dd>No arguments were set. 
+  <dd>No arguments were set or <code>-h</code> was set. 
 </dl>
 
 ## EXAMPLES
@@ -55,13 +69,24 @@ Serve files in the `site1` and `site2` directory to be accessed using `http://lo
     /home/user/site2:/site2
 ```
 
-## NOTES
+An example of a small argument file named `lds-args.txt` in the directory `/home/andy` would be:
 
-For serving json to support ajax calls, a crude implementation of CORS is used.
+```
+/home/andy/var/www/sites/site1:/site1
+/home/andy/var/www/sites/site2:/site2:secure
+```
+
+Then the command line would be:
+
+```bash
+  bash LocalDirectoryServer.java @/home/andy/lds-args.txt
+```
+
+The server would serve `/site1` on HTTP port 8086 and `/site2` on HTTPS port 4436.
 
 ## SEE ALSO
 
-* [CORS](https://www.w3.org/TR/cors/)
+`LocalDirectoryServer-config`
 
 ## AUTHOR
 
@@ -75,5 +100,4 @@ Report issues at https://github.com/argherna/Dotfiles/issues.
 
 ### Known Issues
 
-* HTTPS is not supported.
 * Directories are not displayed (only files).
