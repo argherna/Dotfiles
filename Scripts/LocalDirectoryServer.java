@@ -17,38 +17,58 @@ javac -d /tmp/.java/classes $0
 }
 exit
 */
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
+import java.security.KeyStore;
+import java.security.SecureRandom;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
 import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLParameters;
+import javax.net.ssl.TrustManagerFactory;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpContext;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.HttpsConfigurator;
+import com.sun.net.httpserver.HttpsParameters;
+import com.sun.net.httpserver.HttpsServer;
 
 class LocalDirectoryServer {
 
-  private static final Pattern INTEGER_PATTERN = 
-    Pattern.compile("(?<![-.])\\b[0-9]+\\b(?!\\.[0-9])");
-
   private static final int DEFAULT_HTTP_PORT = 8086;
+
+  private static final int DEFAULT_HTTPS_PORT = 4436;
  
   private static final Logger LOGGER = Logger.getLogger(
     LocalDirectoryServer.class.getName());
+
+  private static final String DEFAULT_KEYSTORE = System.getProperty("user.home") + 
+    System.getProperty("file.separator") + ".keystore";
+
+  private static final String DEFAULT_KEYSTORE_PASSWORD = "changeit";
+  
+  private static final String DEFAULT_TRUSTSTORE = System.getProperty("java.home") +
+     System.getProperty("file.separator") + "lib" + 
+     System.getProperty("file.separator") + "security" + 
+     System.getProperty("file.separator") + "cacerts";
+  
+  private static final String DEFAULT_TRUSTSTORE_PASSWORD = "changeit";
 
   /**
    * HTTP server that serves files out of a directory.
@@ -63,7 +83,6 @@ class LocalDirectoryServer {
    * You can set the port. The default is {@value #DEFAULT_HTTP_PORT}.
    */
   public static void main (String... args) {
-
     if (args.length == 0) {
       System.err.printf(
         "Usage: %s [port] <directory-to-serve:server-path> ...%n",
@@ -71,38 +90,88 @@ class LocalDirectoryServer {
       System.exit(2);
     }
 
-    int port = DEFAULT_HTTP_PORT;
-    Map<String, Path> directoriesToServe = new HashMap<>();
-
-    for (String arg : args) {
-      if (INTEGER_PATTERN.matcher(arg).matches()) {
-        port = Integer.valueOf(arg);
-      } else {
-        List<String> components = List.of(arg.split(":"));
-        Path directory = Paths.get(components.get(0));
-        if (directory.toFile().exists()) {
-          directoriesToServe.put(components.get(1), directory);
-        } else {
-          System.err.printf("%s not found, skipping!%n", arg);
-        }
-      }
-    }
-
-    final HttpServer httpServer;
+    int httpPort = DEFAULT_HTTP_PORT;
+    int httpsPort = DEFAULT_HTTPS_PORT;
+    
+    Map<String, Path> httpDirsToServe = new HashMap<>();
+    Map<String, Path> httpsDirsToServe = new HashMap<>();
+    
     try {
-      httpServer = HttpServer.create(new InetSocketAddress(port), 0);
-      Runtime.getRuntime().addShutdownHook(new Thread(){
-        @Override
-        public void run() {
-          LOGGER.warning("Stopping HTTP server...");
-          httpServer.stop(0);
+      for (int i = 0; i < args.length; i++) {
+        String arg = args[i];
+        if (arg.equals("-H")) {
+          httpPort = Integer.valueOf(args[++i]);
+        } else if (arg.equals("-S")) {
+          httpsPort = Integer.valueOf(args[++i]);
+        } else if (arg.startsWith("@")) {
+          processFileArgs(httpDirsToServe, httpsDirsToServe, httpPort, httpsPort, arg.substring(1));
+        } else {
+          processDirectoryToServeArgument(arg, httpDirsToServe, httpsDirsToServe);
         }
-      });
-      for (String path : directoriesToServe.keySet()) {
-        httpServer.createContext(path, 
-          new LocalDirectoryHttpHandler(directoriesToServe.get(path)));
       }
-      httpServer.start();
+      if (!httpsDirsToServe.isEmpty()) {
+        InetSocketAddress address = new InetSocketAddress(httpsPort);
+        String keystoreName = 
+          System.getProperty("javax.net.ssl.keyStore") == null ? 
+            DEFAULT_KEYSTORE : System.getProperty("javax.net.ssl.keyStore");
+        char[] keystorePassword = 
+          System.getProperty("javax.net.ssl.keyStorePassword") == null ? 
+            DEFAULT_KEYSTORE_PASSWORD.toCharArray() : 
+              System.getProperty("javax.net.ssl.keyStorePassword").toCharArray();
+        String keystoreType = 
+          System.getProperty("javax.net.ssl.keyStoreType") == null ? 
+            KeyStore.getDefaultType() : 
+              System.getProperty("javax.net.ssl.keyStoreType");
+        String truststoreName = 
+          System.getProperty("javax.net.ssl.trustStore") == null ? 
+            DEFAULT_TRUSTSTORE : System.getProperty("javax.net.ssl.trustStore");;
+        char[] truststorePassword = 
+          System.getProperty("javax.net.ssl.trustStorePassword") == null ? 
+            DEFAULT_TRUSTSTORE_PASSWORD.toCharArray() : 
+              System.getProperty("javax.net.ssl.trustStorePassword").toCharArray();
+        String truststoreType = 
+          System.getProperty("javax.net.ssl.trustStoreType") == null ? 
+            KeyStore.getDefaultType() : 
+              System.getProperty("javax.net.ssl.trustStoreType");
+    
+        final KeyStore keystore = KeyStore.getInstance(keystoreType);
+        keystore.load(new FileInputStream(new File(keystoreName)), keystorePassword);
+        final KeyManagerFactory kmf = 
+          KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        kmf.init(keystore, keystorePassword);
+
+        final KeyStore truststore = KeyStore.getInstance(truststoreType);
+        truststore.load(new FileInputStream(new File(truststoreName)), truststorePassword);
+        final TrustManagerFactory tmf = 
+        TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(truststore);
+
+        final SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), new SecureRandom());
+
+        HttpsServer httpsServer = HttpsServer.create(address, 0);
+        setExecutor(httpsServer);
+        addHandlersForPaths(httpsServer, httpsDirsToServe);
+        addShutdownHook(httpsServer);
+        httpsServer.setHttpsConfigurator(new HttpsConfigurator(sslContext) {
+          @Override
+          public void configure(final HttpsParameters params) {
+            final SSLContext ssl = getSSLContext();
+            final SSLParameters sslParams = ssl.getDefaultSSLParameters();
+            params.setSSLParameters(sslParams);
+          }
+        });
+        httpsServer.start();
+      }
+      
+      if (!httpDirsToServe.isEmpty()) {
+        HttpServer httpServer = HttpServer.create(new InetSocketAddress(httpPort),
+          0);
+        setExecutor(httpServer);
+        addHandlersForPaths(httpServer, httpDirsToServe);
+        addShutdownHook(httpServer);
+        httpServer.start();
+      }
     } catch (Exception e) {
       System.err.printf("%s%n", e.getMessage());
       if (e.getCause() != null) {
@@ -114,6 +183,82 @@ class LocalDirectoryServer {
     }
   }
 
+  private static void processFileArgs(Map<String, Path> httpDirsToServe, 
+    Map<String, Path> httpsDirsToServe, int httpPort, int httpsPort, 
+    String name) throws IOException {
+    String filename = name;
+    // Prepend the current directory if the path isn't absolute.
+    if (!filename.startsWith(System.getProperty("file.separator"))) {
+      filename = System.getProperty("user.dir") + 
+        System.getProperty("file.separator") + name;
+    }
+    File f = new File(filename);
+    try (FileReader fr = new FileReader(f); 
+      BufferedReader br = new BufferedReader(fr)) {
+      String line = null;
+      while ((line = br.readLine()) != null) {
+        if (line.startsWith("-H")) {
+          httpPort = Integer.valueOf(line.split(" ")[1]);
+        } else if (line.startsWith("-S")) {
+          httpsPort = Integer.valueOf(line.split(" ")[1]);
+        } else {
+          processDirectoryToServeArgument(line, httpDirsToServe, httpsDirsToServe);
+        }
+      }
+    }
+  }
+
+  private static void processDirectoryToServeArgument(String arg, 
+    Map<String, Path> httpDirsToServe, Map<String, Path> httpsDirsToServe) {
+    String[] service = arg.split(":");
+    if (service.length == 2) {
+      putIfPathExists(httpDirsToServe, service[0], service[1]);
+    } else if (service.length == 3) {
+      if (service[2].equalsIgnoreCase("secure")) {
+        putIfPathExists(httpsDirsToServe, service[0], service[1]);
+      } else {
+        putIfPathExists(httpDirsToServe, service[0], service[1]);
+      }
+    } else {
+      throw new IllegalArgumentException("Can't parse argument " + arg 
+        + "! Use <dir-to-serve:path[:secure]> when specifying " 
+        + "directories to serve.");
+    }
+  }
+
+  private static void putIfPathExists(Map<String, Path> dirs, 
+    String localDirectory, String serverPath) {
+    Path p = Paths.get(localDirectory);
+    if (p.toFile().isDirectory()) {
+      dirs.put(serverPath, p);
+    } else {
+      LOGGER.fine(localDirectory + 
+        " is either not a directory or doesn't exist!");
+    }
+  }
+
+  private static void setExecutor(HttpServer httpServer) {
+    httpServer.setExecutor(Executors.newCachedThreadPool());
+  }
+
+  private static void addShutdownHook(final HttpServer httpServer) {
+    Runtime.getRuntime().addShutdownHook(new Thread() {
+      @Override
+      public void run() {
+        LOGGER.warning("Stopping HTTP server...");
+        httpServer.stop(0);
+      }
+    });
+  }
+
+  private static void addHandlersForPaths(HttpServer httpServer, 
+    Map<String, Path> directoriesToServe) {
+    for (String path : directoriesToServe.keySet()) {
+      httpServer.createContext(path, 
+        new LocalDirectoryHttpHandler(directoriesToServe.get(path)));
+    }
+  }
+
   /**
    * Handles requests for static files from a directory.
    */
@@ -122,8 +267,6 @@ class LocalDirectoryServer {
     private static final int HTTP_OK = 200;
 
     private static final int HTTP_NOT_FOUND = 404;
-
-    private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
 
     private static final String ERROR_HTML_TEMPLATE = 
       "<html><head><title>%1$d %2$s</title></head><body><h1>%2$s</h1>"
@@ -142,6 +285,7 @@ class LocalDirectoryServer {
       types.put("png", "image/png");
       types.put("sh", "text/x-shellscript; charset=us-ascii");
       types.put("svg", "image/svg+xml");
+      types.put("txt", "text/plain");
       types.put("default", "application/octet-stream");
       TYPES = Collections.unmodifiableMap(types);
     }
@@ -155,7 +299,8 @@ class LocalDirectoryServer {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-      String filename = exchange.getRequestURI().getPath().substring(1);
+      String filename = exchange.getRequestURI().getPath()
+        .replace(exchange.getHttpContext().getPath() + "/", "");
       Path file = path.resolve(filename);
       LOGGER.fine(String.format("Serving %s", file.toFile().getAbsolutePath()));
       int status = HTTP_OK;
@@ -167,32 +312,29 @@ class LocalDirectoryServer {
         content = getErrorHtml(status, "Not Found", 
           exchange.getRequestURI().getPath() + " not found on the server.")
           .getBytes();
-      } else {
-        try {
-          content = Files.readAllBytes(file);
-          String extension = getFileExtension(filename);
-          if (TYPES.containsKey(extension)) {
-            contentType = TYPES.get(extension);
-          } else {
-            contentType = TYPES.get("default");
-          }
-          LOGGER.fine(String.format("content type = %s", contentType));
-        } catch (Exception e) {
-          if (e instanceof IOException) {
-            throw (IOException) e;
-          } else {
-            status = HTTP_INTERNAL_SERVER_ERROR;
-            contentType = TYPES.get("html");
-            content = getErrorHtml(status, 
-              "Internal Server Error", 
-              "Error occurred serving " 
-              + exchange.getRequestURI().getPath() 
-              + " " + e.getMessage()).getBytes();
-          }
-        }
-      }
+      } 
 
-      doSend(exchange, contentType, content, status);
+      if (content.length > 0) {
+        doSend(exchange, contentType, content, status);
+      } else {
+        doSend(exchange, file, status);
+      }
+    }
+
+    private void doSend(HttpExchange exchange, Path file, int status)
+      throws IOException {
+      int contentLength = (int) file.toFile().length();
+      String contentType = Files.probeContentType(file);
+      LOGGER.fine("file length = " + contentLength + ", contentType = " + contentType);
+
+      Headers h = exchange.getResponseHeaders();
+      h.add("Content-Type", contentType);
+      doMinimalCORS(contentType, h);
+      exchange.sendResponseHeaders(status, contentLength);
+      if (contentLength > 0) {
+        Files.copy(file, exchange.getResponseBody());
+      }
+      exchange.close();
     }
 
     private void doSend(HttpExchange exchange, String contentType, 
@@ -216,14 +358,9 @@ class LocalDirectoryServer {
     private void doMinimalCORS(String contentType, Headers responseHeaders) {
       if (contentType.equals(TYPES.get("json")) || 
         contentType.equals(TYPES.get("js"))) {
-        h.add("Access-Control-Allow-Origin", "*");
-        h.add("Access-Control-Allow-Headers", "origin, content-type, accept");
+        responseHeaders.add("Access-Control-Allow-Origin", "*");
+        responseHeaders.add("Access-Control-Allow-Headers", "origin, content-type, accept");
       }
-    }
-    
-    private String getFileExtension(String filename) {
-      int lastDot = filename.lastIndexOf('.');
-      return lastDot > 0 ? filename.substring(lastDot + 1) : "";
     }
 
     private String getErrorHtml(int status, String error, String text) {
