@@ -308,8 +308,6 @@ class LocalDirectoryServer {
 
     private static final int HTTP_METHOD_NOT_ALLOWED = 405;
 
-    private static final int HTTP_INTERNAL_SERVER_ERROR = 500;
-
     private static final String ERROR_HTML_TEMPLATE = 
       "<html><head><title>%1$d %2$s</title></head><body><h1>%2$s</h1>"
       + "<p>%3$s</p></body></html>";
@@ -363,49 +361,35 @@ class LocalDirectoryServer {
     }
 
     private void doOptions(HttpExchange exchange) throws IOException {
-      String node = LocalDirectoryServer.class.getSimpleName() + 
-        "/corsSupport" + exchange.getRequestURI().getPath();
-      try {
-        if (!Preferences.userRoot().nodeExists(node)) {
-          doMethodNotAllowed(exchange);
-          return;
-        }
-  
-        Preferences corsSupport = Preferences.userRoot().node(node);
-        String origin = corsSupport.get("allowedOrigins", "*");
-        String directory = corsSupport.get("directory", "");
-        
-        Headers requestHeaders = exchange.getRequestHeaders();
-        
-        if (directory.equals(path.toString())) {
-          if (origin.equals("*")) {
-            addCorsHeaders(exchange, corsSupport, origin);
-          } else {
-            List<String> origins = List.of(origin.split(","));
-            String requestOrigin = requestHeaders.getFirst("Origin");
-            if (origins.contains(URI.create(requestOrigin).getHost())) {
-              addCorsHeaders(exchange, corsSupport, requestOrigin);
-            } else {
-              doForbidden(exchange);
-              return;
-            }
-          }
-        } else {
-          doMethodNotAllowed(exchange);
-          return;
-        }
-        doNoContent(exchange);
-      } catch (BackingStoreException e) {
-        LOGGER.log(Level.FINE, "Internal error!",  e);
-        doInternalServerError(exchange);
+      String node = formatNodeName(exchange.getRequestURI().getPath());
+      if (!isCORSSupported(node)) {
+        doMethodNotAllowed(exchange);
         return;
+      }
+      Preferences corsSupport = Preferences.userRoot().node(node);
+      String origin = corsSupport.get("allowedOrigins", "*");
+      if (origin.equals("*")) {
+        addCorsHeaders(exchange, corsSupport, origin);
+      } else {
+        List<String> origins = List.of(origin.split(","));
+        String requestOrigin = requestHeaders.getFirst("Origin");
+        if ((requestOrigin != null && !requestOrigin.isEmpty()) && 
+          origins.contains(URI.create(requestOrigin).getHost())) {
+          addCorsHeaders(exchange, corsSupport, requestOrigin);
+          doNoContent(exchange);
+        } else {
+          doForbidden(exchange);
+        }
       }
     }
 
-    private void addCorsHeaders(HttpExchange exchange) {
+    private String formatNodeName(String contextPath) {
+      return LocalDirectoryServer.class + "/corsSupport" + contextPath;
+    }
+
+    private void addCorsHeaders(HttpExchange exchange) throws IOException {
       Preferences corsSupport = Preferences.userRoot()
-        .node(LocalDirectoryServer.class.getSimpleName() + "/corsSupport" + 
-          exchange.getHttpContext().getPath());
+        .node(formatNodeName(exchange.getHttpContext().getPath()));
       String origin = exchange.getRequestHeaders().getFirst("Origin");
       if (origin == null) {
         origin = ""; // ¯\_(ツ)_/¯
@@ -426,9 +410,9 @@ class LocalDirectoryServer {
       }
     }
 
-    private void doNotFound(HttpExchange exchange) {
-      doSend(exchange, TYPES.get("html"), getErrorHtml(status, "Not Found", 
-      exchange.getRequestURI().getPath() + " not found on the server.")
+    private void doNotFound(HttpExchange exchange) throws IOException {
+      doSend(exchange, TYPES.get("html"), getErrorHtml(HTTP_NOT_FOUND, "Not Found", 
+        exchange.getRequestURI().getPath() + " not found on the server.")
         .getBytes(), HTTP_NOT_FOUND);
     }
 
@@ -441,16 +425,8 @@ class LocalDirectoryServer {
 
     private void doForbidden(HttpExchange exchange) throws IOException {
       doSend(exchange, TYPES.get("html"), getErrorHtml(HTTP_FORBIDDEN, 
-        "Method not allowed", exchange.getRequestMethod() + 
-        " not allowed on this server!").getBytes(), HTTP_FORBIDDEN);
-    }
-
-    private void doInternalServerError(HttpExchange exchange) 
-      throws IOException {
-      doSend(exchange, TYPES.get("html"), 
-        getErrorHtml(HTTP_INTERNAL_SERVER_ERROR, "Internal Server Error", 
-        "An internal server error occurred, check the logs.").getBytes(), 
-        HTTP_INTERNAL_SERVER_ERROR);
+        "Forbidden", "Access to " + exchange.getRequestURI().getPath() + 
+          " is forbidden on this server.").getBytes(), HTTP_FORBIDDEN);
     }
 
     private void doSend(HttpExchange exchange, Path file, int status)
@@ -458,7 +434,7 @@ class LocalDirectoryServer {
       String probed = Files.probeContentType(file);
       String contentType = probed == null ? probed : TYPES.get("default");
       addContentType(exchange.getResponseHeaders(), contentType);
-      if (shouldAddCorsHeaders(contentType, exchange.getHttpContext().getPath())) {
+      if (isCORSSupported(contentType, exchange.getHttpContext().getPath())) {
         addCorsHeaders(exchange);
       } 
       int contentLength = (int) file.toFile().length();
@@ -490,12 +466,29 @@ class LocalDirectoryServer {
       exchange.close();
     }
 
-    private boolean shouldAddCorsHeaders(String contentType, String requestPath) {
-      Preferences corsSupport = Preferences.userRoot()
-        .node(LocalDirectoryServer.class.getSimpleName() + "/corsSupport" + 
-          requestPath);
-      return List.of(corsSupport.get("MIMETypes", "").split(","))
-        .contains(contentType);
+    private boolean isCORSSupported(String contentType, String requestPath) {
+      String node = formatNodeName(requestPath);
+      try {
+        return isCORSSupported(node) &&
+          List.of(Preferences.userRoot().node(node).get("MIMETypes", "").split(""))
+            .contains(contentType);
+      } catch (BackingStoreException e) {
+        LOGGER.log(Level.FINE, 
+          "Couldn't read Preferences; CORS is not supported.", e);
+        return false;
+      }
+    }
+
+    private boolean isCORSSupported(String nodename) {
+      try {
+        return Preferences.userRoot().nodeExists(nodename) && 
+          Preferences.userRoot().node(node).get("directory", "")
+             .equals(path.toString());
+      } catch (BackingStoreException e) {
+        LOGGER.log(Level.FINE, 
+          "Couldn't read Preferences; CORS is not supported.", e);
+        return false;
+      }
     }
 
     private void addContentType(Headers responseHeaders, String contentType) {
