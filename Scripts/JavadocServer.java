@@ -396,42 +396,44 @@ class JavadocServer {
       return lastDot > 0 ? filename.substring(lastDot + 1) : "";
     }
 
-    byte[] getContentFromZip(String zipFilename, String filename) 
-      throws IOException {
-      byte[] content = new byte[0];
-      try (ZipFile zf = new ZipFile(zipFilename)) {
-        Enumeration<? extends ZipEntry> entries = zf.entries();
-        while (entries.hasMoreElements()) {
-          ZipEntry zipEntry = (ZipEntry) entries.nextElement();
-          if (zipEntry.getName().equals(filename)) {
-            content = toByteArray(zf.getInputStream(zipEntry));
-            break;
-          }
-        }
-      }
-      return content;
-    }
-
-    /**
-     * Convert the InputStream to a byte array and returns it.
-     * 
-     * @param from InputStream to convert.
-     * 
-     * <p>
-     * Shamelessly copied and adapted from com.google.common.io.ByteStreams.copy() and 
-     * com.google.common.io.ByteStreams.toByteArray().
-     */
-    private byte[] toByteArray(InputStream from) throws IOException {
-      ByteArrayOutputStream to = new ByteArrayOutputStream();
+    private long copy(InputStream in, OutputStream sink) throws IOException {
+      // Seriously, how many ways are there to copy an InputStream to an 
+      // OutputStream??? This should be part of the JDK. Think about how 
+      // many times through Java's history this has been written.
+      long read = 0l;
       byte[] buf = new byte[BUF_SIZE];
-      while (true) {
-        int read = from.read(buf);
-        if (read == -1) {
-          break;
-        }
-        to.write(buf, 0, read);
+      int n = 0;
+      while ((n = in.read(buf)) > 0) {
+        sink.write(buf, 0, n);
+        read += n;
       }
-      return to.toByteArray();
+      return read;
+    }
+    
+    void doSend(HttpExchange exchange, String contentType, String archiveName, 
+      String entryName) throws IOException {
+      Headers h = exchange.getResponseHeaders();
+      h.add("Content-Type", contentType);
+      int contentLength = -1;
+      InputStream source;
+      int status = HTTP_OK;
+      try (ZipFile zf = new ZipFile(archiveName)) {
+        ZipEntry ze = zf.getEntry(entryName);
+        if (ze != null) {
+          contentLength = Long.valueOf(ze.getSize()).intValue();
+          source = zf.getInputStream(ze);
+        } else {
+          h.remove("Content-Type");
+          h.add("Content-Type", TYPES.get("html"));
+          status = HTTP_NOT_FOUND;
+          byte[] content = decodeDecompress(NOT_FOUND_PAGE_GZ_B64);
+          source = new ByteArrayInputStream(content);
+          contentLength = content.length;
+        }
+        exchange.sendResponseHeaders(status, contentLength);
+        copy(source, exchange.getResponseBody());
+      } 
+      exchange.close();
     }
 
     void doSend(HttpExchange exchange, String contentType, byte[] content, 
@@ -554,8 +556,6 @@ class JavadocServer {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-      int status = HTTP_OK;
-      byte[] content = new byte[0];
       String requestPath = exchange.getRequestURI().getPath();
       List<String> pathElements = Arrays.asList(
         requestPath.split(SYSPROP_FILE_SEP)).stream()
@@ -566,20 +566,19 @@ class JavadocServer {
       Preferences jdkDocs = Preferences.userRoot().node("JavadocServer/jdk-docs");
       String javadocArchiveName = jdkDocs.get(jdkDocsKey, "");
       if (javadocArchiveName.isEmpty()) {
-        status = HTTP_NOT_FOUND;
-        content = decodeDecompress(NOT_FOUND_PAGE_GZ_B64);
+        doSend(exchange, contentType, decodeDecompress(NOT_FOUND_PAGE_GZ_B64), 
+          HTTP_NOT_FOUND);
       } else if (pathElements.size() < MIN_PATH_ELEMENTS) {
-        status = HTTP_BAD_REQUEST;
-        content = decodeDecompress(BAD_REQUEST_GZ_B64);
+        doSend(exchange, contentType, decodeDecompress(BAD_REQUEST_GZ_B64), 
+          HTTP_BAD_REQUEST);
       } else {
         StringJoiner sj = new StringJoiner(SYSPROP_FILE_SEP);
         pathElements.subList(AFTER_PATH_AND_KEY_IDX, pathElements.size())
           .stream().forEach(p -> sj.add(p));
         String filename = sj.toString();
         contentType = TYPES.get(getFileExtension(filename));
-        content = getContentFromZip(javadocArchiveName, filename);
+        doSend(exchange, contentType, javadocArchiveName, filename);
       }
-      doSend(exchange, contentType, content, status);
     }
   }
 
@@ -592,23 +591,21 @@ class JavadocServer {
 
     @Override
     public void handle(HttpExchange exchange) throws IOException {
-      byte[] content = new byte[0];
-      int status = HTTP_OK;
-      String contentType = TYPES.get("html");
       Preferences m2Repos = Preferences.userRoot()
         .node("JavadocServer/m2-repos");
       String m2RepoPath = m2Repos.get("default", "");
-      String requestPath = exchange.getRequestURI().getPath();
       List<String> pathElements = 
-        Arrays.asList(requestPath.split(SYSPROP_FILE_SEP))
-          .stream().filter(pe -> pe != null && !pe.isEmpty())
+        Arrays.stream(exchange.getRequestURI().getPath()
+          .split(SYSPROP_FILE_SEP))
+          .filter(pe -> pe != null && !pe.isEmpty())
           .collect(Collectors.toList());
 
       if (m2RepoPath.isEmpty()) {
-        content = decodeDecompress(GETTING_STARTED_HTML_GZ_B64);
+        doSend(exchange, TYPES.get("html"), 
+          decodeDecompress(GETTING_STARTED_HTML_GZ_B64), HTTP_OK);
       } else if (pathElements.size() < MIN_PATH_ELEMENTS) {
-        status = HTTP_BAD_REQUEST;
-        content = decodeDecompress(BAD_REQUEST_GZ_B64);
+        doSend(exchange, TYPES.get("html"), decodeDecompress(BAD_REQUEST_GZ_B64), 
+          HTTP_BAD_REQUEST);
       } else {
         String filename = toMavenCoordinates(m2RepoPath,
           pathElements.subList(1, pathElements.size()));
@@ -618,10 +615,9 @@ class JavadocServer {
         String docPath = fpJoiner.toString();
         LOGGER.fine(() -> String.format("[filename = %s, docPath = %s]",
           filename, docPath));
-        content = getContentFromZip(filename, docPath);
-        contentType = TYPES.get(getFileExtension(docPath));
+        doSend(exchange, TYPES.get(getFileExtension(docPath)), 
+          filename, docPath);
       }
-      doSend(exchange, contentType, content, status);
     }
 
     private String toMavenCoordinates(String baseDirname, 
