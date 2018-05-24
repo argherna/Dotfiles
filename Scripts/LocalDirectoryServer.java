@@ -372,7 +372,8 @@ class LocalDirectoryServer {
         addCorsHeaders(exchange, corsSupport, origin);
       } else {
         List<String> origins = List.of(origin.split(","));
-        String requestOrigin = requestHeaders.getFirst("Origin");
+        String requestOrigin = exchange.getRequestHeaders()
+          .getFirst("Origin");
         if ((requestOrigin != null && !requestOrigin.isEmpty()) && 
           origins.contains(URI.create(requestOrigin).getHost())) {
           addCorsHeaders(exchange, corsSupport, requestOrigin);
@@ -468,21 +469,15 @@ class LocalDirectoryServer {
 
     private boolean isCORSSupported(String contentType, String requestPath) {
       String node = formatNodeName(requestPath);
-      try {
-        return isCORSSupported(node) &&
-          List.of(Preferences.userRoot().node(node).get("MIMETypes", "").split(""))
-            .contains(contentType);
-      } catch (BackingStoreException e) {
-        LOGGER.log(Level.FINE, 
-          "Couldn't read Preferences; CORS is not supported.", e);
-        return false;
-      }
+      return isCORSSupported(node) &&
+        List.of(Preferences.userRoot().node(node).get("MIMETypes", "").split(""))
+          .contains(contentType);
     }
 
     private boolean isCORSSupported(String nodename) {
       try {
         return Preferences.userRoot().nodeExists(nodename) && 
-          Preferences.userRoot().node(node).get("directory", "")
+          Preferences.userRoot().node(nodename).get("directory", "")
              .equals(path.toString());
       } catch (BackingStoreException e) {
         LOGGER.log(Level.FINE, 
