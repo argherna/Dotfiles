@@ -433,14 +433,14 @@ class LocalDirectoryServer {
     private void doSend(HttpExchange exchange, Path file, int status)
       throws IOException {
       String probed = Files.probeContentType(file);
-      String contentType = probed == null ? probed : TYPES.get("default");
+      String contentType = probed == null ? TYPES.get("default") : probed;
       addContentType(exchange.getResponseHeaders(), contentType);
       if (isCORSSupported(contentType, exchange.getHttpContext().getPath())) {
         addCorsHeaders(exchange);
       } 
       int contentLength = (int) file.toFile().length();
-      LOGGER.fine("file length = " + contentLength + ", contentType = " + 
-        contentType);
+      LOGGER.fine("file name = " + file.toString() + ", file length = " + 
+        contentLength + ", contentType = " + contentType);
       exchange.sendResponseHeaders(status, contentLength);
       if (contentLength > 0) {
         Files.copy(file, exchange.getResponseBody());
