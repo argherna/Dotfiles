@@ -151,7 +151,7 @@ class DumpPrivateKey {
     out.printf("Keystore-Type: %s%n", ks.getType());
     out.println();
     int index = 0;
-    int linelength = 76;
+    int linelength = 64;
     while (index < b64.length()) {
       if (index < (b64.length() - linelength)) {
         out.println(b64.substring(index, (linelength + index)));

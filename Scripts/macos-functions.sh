@@ -110,7 +110,7 @@ copyfile() {
     return 1
   fi
   local file_to_copy=$1
-  pbcopy < $file_to_copy
+  pbcopy < "$file_to_copy"
 }
 
 # Generates a UUID and copies it to the pasteboard.
