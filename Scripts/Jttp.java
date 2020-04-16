@@ -2018,7 +2018,7 @@ class Jttp implements Runnable {
         private static final Predicate<Character> CHAR_NOT_OPEN_TAG = c -> c != '<';
 
         private static final Predicate<Character> CHAR_CHANGE_COLOR_IN_TAG =
-                c -> c == '=' || c == '"' || c == ' ' || c == '?' || c == '/';
+                c -> c == '=' || c == '"' || c == ' ' || c == '?' || c == '/' || c == '\'';
 
         private final char[] markup;
 
@@ -2115,7 +2115,7 @@ class Jttp implements Runnable {
                 if (CHAR_CHANGE_COLOR_IN_TAG.test(ch) && !inDeclarativeStatement && !instring) {
                     colorChanges++;
                 }
-                if (ch == '"') {
+                if (ch == '"' || ch == '\'') {
                     instring = !instring;
                     if (!instring) {
                         colorChanges++;
@@ -2195,7 +2195,8 @@ class Jttp implements Runnable {
                         }
                         buffer[bufIdx++] = ch;
                         ch = markup[incrementAndGetCurrentPosition()];
-                    } else if (ch == '"') {
+                    } else if (ch == '"' || ch == '\'') {
+                        var strDelimiter = ch;
                         if (isColorOutput()) {
                             currColorChars =
                                     getColorTheme().getStringValueColor().fgCode().toCharArray();
@@ -2205,7 +2206,7 @@ class Jttp implements Runnable {
                         do {
                             buffer[bufIdx++] = ch;
                             ch = markup[incrementAndGetCurrentPosition()];
-                        } while (ch != '"' && bufIdx < bufSz);
+                        } while (ch != strDelimiter && bufIdx < bufSz);
 
                         if (ch == '"') {
                             buffer[bufIdx++] = ch;
