@@ -280,9 +280,33 @@ file_size() {
 
 alias fsz='file_size'
 
+man_md() {
+  if [[ $# -eq 0 ]]; then
+    echo "Usage: man_md <md-filename>"
+    return 1
+  fi
+
+  $(command -v pandoc) >/dev/null 2>&1
+  PANDOC_INSTALLED=$(echo $?)
+  $(command -v lynx) >/dev/null 2>&1
+  LYNX_INSTALLED=$(echo $?)
+  
+  if [[ $PANDOC_INSTALLED -eq 0 ]]; then
+    if [[ $LYNX_INSTALLED -eq 0 ]]; then
+      pandoc ${1} | lynx -stdin
+    else
+      echo "lynx not installed! Install lynx and try again."
+      return 1
+    fi
+  else
+    echo "pandoc not installed! Install pandoc and try again."
+    return 1
+  fi
+}
+
 # Show all the names (CNs and SANs) listed in the SSL certificate
 # for a given domain
-function getcertnames() {
+getcertnames() {
 	if [ -z "${1}" ]; then
 		echo "ERROR: No domain specified.";
 		return 1;
