@@ -2634,7 +2634,7 @@ class Jttp implements Runnable {
             return histDoc;
         }
 
-        
+
 
         /**
          * Save a file named {@code cookies.xml} in the session zip file.
