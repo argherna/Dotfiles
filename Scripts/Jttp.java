@@ -39,6 +39,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.net.Authenticator;
 import java.net.HttpCookie;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.PasswordAuthentication;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -82,6 +83,9 @@ import javax.net.ssl.X509TrustManager;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.xml.namespace.QName;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
@@ -90,6 +94,8 @@ import javax.xml.transform.OutputKeys;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
+import org.w3c.dom.Document;
+import org.xml.sax.SAXException;
 
 @Jttp.Version(name = "Jttp", major = "1")
 class Jttp implements Runnable {
@@ -286,9 +292,8 @@ class Jttp implements Runnable {
             session = new Session(sessionName, conn);
             try {
                 session.load();
-            } catch (XMLStreamException e) {
+            } catch (Exception e) {
                 LOGGER.log(WARNING, "logger.warning.xmlerror", e.getMessage());
-                throw new RuntimeException(e);
             }
         }
 
@@ -404,7 +409,6 @@ class Jttp implements Runnable {
                     session.save();
                 } catch (XMLStreamException e) {
                     LOGGER.log(WARNING, RB, "logger.warning.xmlerror", e.getMessage());
-                    throw new RuntimeException(e);
                 }
             }
 
@@ -2208,7 +2212,7 @@ class Jttp implements Runnable {
                             ch = markup[incrementAndGetCurrentPosition()];
                         } while (ch != strDelimiter && bufIdx < bufSz);
 
-                        if (ch == '"') {
+                        if (ch == strDelimiter) {
                             buffer[bufIdx++] = ch;
                         }
                         ch = markup[incrementAndGetCurrentPosition()];
@@ -2418,6 +2422,8 @@ class Jttp implements Runnable {
         // Maybe make this an option later, for now hardcode as on.
         private final boolean formatSessionXml = true;
 
+        private Document history;
+
         Session(String sessionName, HttpURLConnection conn) throws URISyntaxException {
             this.sessionFsUri = initSessionFsUri(sessionName, conn.getURL().toURI());
             this.conn = conn;
@@ -2430,13 +2436,17 @@ class Jttp implements Runnable {
          * If the session file doesn't yet exist, then this method does nothing. If an IOException
          * occurs and the session file exists, then it is thrown.
          * 
-         * @throws IOException        if an IOException occurs.
-         * @throws XMLStreamException if an XMLStreamException occurs.
+         * @throws IOException                  if an IOException occurs.
+         * @throws XMLStreamException           if an XMLStreamException occurs.
+         * @throws SAXException                 if a SAXException occurs.
+         * @throws ParserConfigurationException if a ParserConfigurationException occurs.
          */
-        void load() throws IOException, XMLStreamException {
+        void load()
+                throws IOException, XMLStreamException, ParserConfigurationException, SAXException {
             // Load headers into HttpURLConnection request properties
             // Set cookies in default CookieHandler's CookieStore.
             try (var sessionFs = FileSystems.newFileSystem(sessionFsUri, LOAD_ENV)) {
+                history = getHistoryXml(sessionFs);
                 doLoadCookies(sessionFs);
                 doLoadHeaders(sessionFs);
             }
@@ -2596,6 +2606,35 @@ class Jttp implements Runnable {
                 }
             }
         }
+
+        private Document getHistoryXml(FileSystem sessionFs) throws ParserConfigurationException,
+                MalformedURLException, SAXException, IOException {
+            var historyXml = sessionFs.getPath("/history.xml");
+            Document histDoc = null;
+            var dbf = DocumentBuilderFactory.newInstance();
+            var histDb = dbf.newDocumentBuilder();
+            if (Files.exists(historyXml)) {
+                try (var xmlIn = historyXml.toUri().toURL().openStream()) {
+                    histDoc = histDb.parse(xmlIn);
+                } catch (Exception e) {
+                    // Something's wrong so log it and generate a new history document.
+                    LOGGER.log(WARNING, "logger.warning.xml.history.error", e);
+                    generateNewHistoryDocument(histDb);
+                }
+            } else {
+                histDoc = generateNewHistoryDocument(histDb);
+            }
+            return histDoc;
+        }
+
+        private Document generateNewHistoryDocument(DocumentBuilder db) {
+            var histDoc = db.newDocument();
+            var root = histDoc.createElement("jttp_history");
+            histDoc.appendChild(root);
+            return histDoc;
+        }
+
+        
 
         /**
          * Save a file named {@code cookies.xml} in the session zip file.
