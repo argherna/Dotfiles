@@ -18,7 +18,6 @@ import java.io.PrintStream;
 import java.security.Key;
 import java.security.KeyStore;
 import java.util.Base64;
-import java.util.Base64.Encoder;
 
 /**
  * Dumps the private key from a JKS keystore to {@linkplain System#out System.out}.

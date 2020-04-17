@@ -13,15 +13,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.util.Base64;
-import java.util.stream.Stream;
-
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
