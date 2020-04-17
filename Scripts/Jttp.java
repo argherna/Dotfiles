@@ -3225,7 +3225,7 @@ class Jttp implements Runnable {
 
         private boolean isValidEnumValue(Field f, String value) {
             try {
-                @SuppressWarnings({"unchecked", "unused"})
+                @SuppressWarnings({"unchecked", "unused", "rawtypes"})
                 var unused = Enum.valueOf((Class<Enum>) f.getType(), value.toUpperCase());
                 return true;
             } catch (IllegalArgumentException e) {
@@ -3238,7 +3238,7 @@ class Jttp implements Runnable {
             return nonNull(f.get(instance));
         }
 
-        @SuppressWarnings("unchecked")
+        @SuppressWarnings({"rawtypes", "unchecked"})
         private void setEnumFieldOnInstance(Field f, String value) throws IllegalAccessException {
             setFieldValueOn(f, Enum.valueOf((Class<Enum>) f.getType(), value.toUpperCase()));
         }
