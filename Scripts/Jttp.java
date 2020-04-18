@@ -74,6 +74,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.prefs.Preferences;
+import java.util.zip.GZIPInputStream;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -349,7 +350,7 @@ class Jttp implements Runnable {
 
         InputStream responseStream = null;
         try {
-            responseStream = offline() ? null : conn.getInputStream();
+            responseStream = offline() ? null : getInputStream();
         } catch (IOException e) {
             responseStream = conn.getErrorStream();
         } finally {
@@ -418,11 +419,15 @@ class Jttp implements Runnable {
                 ps.println();
             }
 
-            if (isDownload()) {
-                doDownload();
-            } else if (printResponseBody()) {
-                createContentRenderer(conn.getContentType(), tempFileToChars()).run();
-                ps.println();
+            if (nonNull(tempResponse)) {
+                if (isDownload()) {
+                    doDownload();
+                } else if (printResponseBody()) {
+                    createContentRenderer(conn.getContentType(), tempFileToChars()).run();
+                    ps.println();
+                }
+            } else {
+                LOGGER.log(INFO, "logger.info.no.response.body.sent");
             }
         }
     }
@@ -588,6 +593,9 @@ class Jttp implements Runnable {
         if (!requestHeaders.containsKey("User-Agent")) {
             conn.setRequestProperty("User-Agent", userAgent(this));
         }
+        if (conn instanceof HttpsURLConnection) {
+            conn.setRequestProperty("Accept-Encoding", "gzip");
+        }
     }
 
     /**
@@ -731,6 +739,20 @@ class Jttp implements Runnable {
             if (somethingWritten) {
                 pw.append("--").append(BOUNDARY).append("--").append(CRLF).flush();
             }
+        }
+    }
+
+    private InputStream getInputStream() throws IOException {
+        // Assuming we already tested for offline run.
+        if (conn instanceof HttpsURLConnection) {
+            if (nonNull(conn.getHeaderField("Content-Encoding"))
+                    && conn.getHeaderField("Content-Encoding").equals("gzip")) {
+                return new GZIPInputStream(conn.getInputStream());
+            } else {
+                return conn.getInputStream();
+            }
+        } else {
+            return conn.getInputStream();
         }
     }
 
@@ -1329,6 +1351,10 @@ class Jttp implements Runnable {
 
         final void incrementCurrentPosition() {
             currentPosition++;
+        }
+
+        final void incrementCurrentPositionBy(int inc) {
+            currentPosition = currentPosition + inc;
         }
 
         final int getAndIncrementCurrentPosition() {
@@ -2015,9 +2041,11 @@ class Jttp implements Runnable {
      */
     static class MarkupRenderer extends ContentRenderer {
 
+        private static final char[] END_COMMENT_ARY = ArrayUtils.asArray('-', '-', '>');
+
         private static final Predicate<Character> CHAR_NOT_CLOSE_TAG = c -> c != '>';
 
-        private static final Predicate<Character> CHAR_CLOSE_TAG = c -> !CHAR_NOT_CLOSE_TAG.test(c);
+        private static final Predicate<Character> CHAR_CLOSE_TAG = Predicate.not(CHAR_NOT_CLOSE_TAG);
 
         private static final Predicate<Character> CHAR_NOT_OPEN_TAG = c -> c != '<';
 
@@ -2027,6 +2055,8 @@ class Jttp implements Runnable {
         private final char[] markup;
 
         private final PrintStream ps;
+
+        private boolean inComment = false;
 
         private boolean inDeclarativeStatement = false;
 
@@ -2078,10 +2108,19 @@ class Jttp implements Runnable {
                         setColor(getColorTheme().getKeywordValueColor());
                     } else if (next == '!') {
                         setColor(getColorTheme().getNumericValueColor());
-                        inDeclarativeStatement = true;
+                        if (markup[getCurrentPosition() + 1] == '-'
+                                && markup[getCurrentPosition() + 2] == '-') {
+                            inComment = true;
+                        } else {
+                            inDeclarativeStatement = true;
+                        }
                     }
-                    int bufSz = scanForTagBufSz();
-                    buffer = fillTagBuffer(bufSz, ch, next);
+                    int bufSz = inComment ? scanForCommentBufSz() : scanForTagBufSz();
+                    buffer = inComment
+                            ? fillCommentBuffer(bufSz, ch, next,
+                                    markup[incrementAndGetCurrentPosition()],
+                                    markup[incrementAndGetCurrentPosition()])
+                            : fillTagBuffer(bufSz, ch, next);
                 } else if (Character.isWhitespace(ch)) {
                     int bufSz = scanForWhitespaceBufSz();
                     buffer = fillWhitespaceBuffer(bufSz, ch);
@@ -2114,6 +2153,7 @@ class Jttp implements Runnable {
             var ch = markup[incrementAndGetCurrentPosition()];
             var colorChanges = 0;
             var instring = false;
+            var lastIndexOfQuote = -1;
             while (CHAR_NOT_CLOSE_TAG.test(ch)) {
                 bufSz++;
                 if (CHAR_CHANGE_COLOR_IN_TAG.test(ch) && !inDeclarativeStatement && !instring) {
@@ -2124,15 +2164,38 @@ class Jttp implements Runnable {
                     if (!instring) {
                         colorChanges++;
                     }
+                    lastIndexOfQuote = getCurrentPosition();
                 }
                 ch = markup[incrementAndGetCurrentPosition()];
             }
-            // Account for the closing character.
+            // Account for the closing character and possible color changes if for example there's
+            // an unquoted attribute value.
             bufSz++;
+            if (lastIndexOfQuote == -1) {
+                colorChanges++;
+            }
             // Account for anything that could cause the color to change inside a tag if needed.
             if (isColorOutput()) {
                 bufSz = bufSz + (FGCODE_LEN * colorChanges);
             }
+            reset();
+            return bufSz;
+        }
+
+        private int scanForCommentBufSz() {
+            var bufSz = 4; // start with <!--
+            mark();
+            incrementCurrentPositionBy(2);
+            var ch = markup[incrementAndGetCurrentPosition()];
+            var last3chars = ArrayUtils.asArray(markup[getCurrentPosition() - 2],
+                    markup[getCurrentPosition() - 1], ch);
+            while (!Arrays.equals(END_COMMENT_ARY, last3chars)) {
+                bufSz++;
+                ch = markup[incrementAndGetCurrentPosition()];
+                last3chars = ArrayUtils.asArray(markup[getCurrentPosition() - 2],
+                        markup[getCurrentPosition() - 1], ch);
+            }
+            bufSz++; // Get the close tag character.
             reset();
             return bufSz;
         }
@@ -2179,7 +2242,7 @@ class Jttp implements Runnable {
                     && getCurrentPosition() < markup.length) {
                 if (!inDeclarativeStatement && CHAR_CHANGE_COLOR_IN_TAG.test(ch)
                         && CHAR_NOT_CLOSE_TAG.test(markup[getCurrentPosition() + 1])) {
-                    if (ch == ' ') {
+                    if (ch == ' ' && markup[getCurrentPosition() - 1] != ' ') {
                         buffer[bufIdx++] = ch;
                         if (isColorOutput()) {
                             currColorChars = getColorTheme().getKeyColor().fgCode().toCharArray();
@@ -2225,6 +2288,9 @@ class Jttp implements Runnable {
                         }
                         buffer[bufIdx++] = ch;
                         ch = markup[incrementAndGetCurrentPosition()];
+                    } else {
+                        buffer[bufIdx++] = ch;
+                        ch = markup[incrementAndGetCurrentPosition()];
                     }
                 } else {
                     buffer[bufIdx++] = ch;
@@ -2238,6 +2304,27 @@ class Jttp implements Runnable {
             }
             buffer[bufIdx] = ch;
             return ArrayUtils.trimNulls(buffer);
+        }
+
+        private char[] fillCommentBuffer(int bufSz, char first, char second, char third,
+                char fourth) {
+            var buffer = new char[bufSz];
+            var bufIdx = 0;
+            buffer[bufIdx++] = first;
+            buffer[bufIdx++] = second;
+            buffer[bufIdx++] = third;
+            buffer[bufIdx++] = fourth;
+            var ch = markup[incrementAndGetCurrentPosition()];
+            var last3chars = ArrayUtils.asArray(markup[getCurrentPosition() - 2],
+                    markup[getCurrentPosition() - 1], ch);
+            while (!Arrays.equals(END_COMMENT_ARY, last3chars)) {
+                buffer[bufIdx++] = ch;
+                ch = markup[incrementAndGetCurrentPosition()];
+                last3chars = ArrayUtils.asArray(markup[getCurrentPosition() - 2],
+                        markup[getCurrentPosition() - 1], ch);
+            }
+            buffer[bufIdx] = ch;
+            return buffer;
         }
 
         private char[] fillTextBuffer(int bufSz, char first) {
@@ -3275,6 +3362,7 @@ class Jttp implements Runnable {
                 System.err.println(
                         MessageFormat.format(rb.getString("cmdline.error.runtime.exception.msg"),
                                 instance.getClass().getName(), e.getMessage()));
+                e.printStackTrace();
                 return 1;
             }
         }
