@@ -300,7 +300,7 @@ java -cp [path to scripting language jar(s)] \
 
 Jttp was inspired by and has several features and options copied from [httpie](https://httpie.org). The motivation for Jttp was to implement a client using the venerable [HttpURLConnection](https://docs.oracle.com/en/java/javase/13/docs/api/java.base/java/net/HttpURLConnection.html) to demonstrate how to use it effectively. The HttpURLConnection is versatile and takes advantage of many built-in features to the Java Runtime through system properties including SPNEGO authentication, client certificate authentication, basic authentication, and custom MIME-type databases. Since the intended use for Jttp is as a command line program, system properties are well-suited for this purpose. StackOverflow provides an [excellent essay](https://stackoverflow.com/a/2793153/37776) on how to use HttpURLConnection the way it was intended. This shows that the API does not necessarily have to mirror the actual conversation that takes place between clients and servers but rather acts as a way to send and receive data to process.
 
-Jttp will download all responses to the `java.io.tmpdir` location (usually `$TMPDIR`). It will then either read from the file locally to produce output that can be formatted for indentation and color or copy the file to the `downloads` directory. The temporary files are deleted at the end of the run unless the `jttp.keep.tempfiles` system property is specified with a value of `true`. Keeping the temporary files is useful for debugging certain issues that can arise during execution. Most of the time, they should just be thrown away.
+Jttp will download all responses to the `java.io.tmpdir` location (usually `$TMPDIR`). It will then either read from the file locally to produce output that can be formatted for indentation and color or copy the file to the `downloads` directory. The temporary files are deleted at the end of the run unless the `jttp.keep.tempfiles` system property is specified with a value of `true`. Keeping the temporary files is useful for debugging certain issues that can arise during execution. Otherwise they should just be thrown away.
 
 Jttp binds an object to the scripting engine called `jttpScriptObject` that gives scripts access to:
 
@@ -310,6 +310,7 @@ Jttp binds an object to the scripting engine called `jttpScriptObject` that give
 
 ## SEE ALSO
 
+* [httpie](https://httpie.org)
 * [Http Authentication](https://docs.oracle.com/javase/8/docs/technotes/guides/net/http-auth.html)
 * [(Kerberos) Troubleshooting](https://docs.oracle.com/javase/8/docs/technotes/guides/security/jgss/tutorials/Troubleshooting.html)
 * [Java Logging Configuration](https://docs.oracle.com/javase/8/docs/technotes/guides/logging/overview.html)
