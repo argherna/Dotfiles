@@ -94,13 +94,13 @@ Jttp may be extended or enhanced by using scripts that execute before and after 
   <dt><code>-R,--read-only-session</code>
   <dd>Load the named session, but don't change it when processing the response. Ignored if <code>-s session_name</code> isn't specified.
   <dt><code>-s,--session session_name</code>
-  <dd>Create or reuse and update a session. Within a session, headers and cookies set are persisted between requests.
+  <dd>Create or reuse and update a session. Within a session, headers, request history, cookies and response data are persisted between requests.
 
   By default, session files are stored in:
 
       ${user.home}/.jttp/sessions/<HOST>/<SESSION_NAME>.zip
   
-  The zip file contains 2 files: <code>headers.xml</code> and <code>cookies.xml</code>.
+  The zip file contains the files: <code>headers.xml</code>, <code>history.xml</code>, any response data, and <code>cookies.xml</code>.
   <dt><code>-v,--verbose</code>
   <dd>Print request and response headers and body. Shortcut for <code>-p HBhb</code>.
   <dt><code>-V,--version</code>

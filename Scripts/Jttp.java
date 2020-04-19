@@ -6,7 +6,9 @@ import static java.lang.System.Logger.Level.TRACE;
 import static java.lang.System.Logger.Level.WARNING;
 import static java.net.URLEncoder.encode;
 import static java.nio.charset.Charset.defaultCharset;
+import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+import static java.nio.file.StandardOpenOption.CREATE;
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import static java.util.Objects.requireNonNull;
@@ -17,7 +19,6 @@ import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import java.io.ByteArrayOutputStream;
 import java.io.CharArrayReader;
-import java.io.CharArrayWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -29,6 +30,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -45,11 +47,11 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLConnection;
 import java.nio.file.FileSystem;
+import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.security.AccessController;
 import java.security.GeneralSecurityException;
 import java.security.PrivilegedAction;
@@ -57,6 +59,7 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.text.MessageFormat;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -92,10 +95,16 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Source;
+import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.TransformerFactoryConfigurationError;
+import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.xml.sax.SAXException;
 
 @Jttp.Version(name = "Jttp", major = "1")
@@ -120,6 +129,11 @@ class Jttp implements Runnable {
             FILE_SEP, Jttp.class.getSimpleName().toLowerCase());
 
     private static final String SYS_PROP_INDENT = "jttp.indent";
+
+    private static final Integer DEFAULT_INDENT = 2;
+
+    private static final Integer INDENT = AccessController.doPrivileged(
+            (PrivilegedAction<Integer>) () -> Integer.getInteger(SYS_PROP_INDENT, DEFAULT_INDENT));
 
     private static final String SYS_PROP_KEEP_TEMP_FILES = "jttp.keep.tempfiles";
 
@@ -295,6 +309,7 @@ class Jttp implements Runnable {
                 session.load();
             } catch (Exception e) {
                 LOGGER.log(WARNING, "logger.warning.xmlerror", e.getMessage());
+                e.printStackTrace();
             }
         }
 
@@ -407,9 +422,11 @@ class Jttp implements Runnable {
 
             if (!readOnlySession() && nonNull(session)) {
                 try {
-                    session.save();
-                } catch (XMLStreamException e) {
+                    session.save(requestData, tempResponse);
+                } catch (XMLStreamException | TransformerFactoryConfigurationError
+                        | TransformerException e) {
                     LOGGER.log(WARNING, RB, "logger.warning.xmlerror", e.getMessage());
+                    e.printStackTrace();
                 }
             }
 
@@ -761,7 +778,7 @@ class Jttp implements Runnable {
         if (!Files.exists(download.getParent())) {
             Files.createDirectories(download.getParent());
         }
-        Files.move(tempResponse.toPath(), download, StandardCopyOption.ATOMIC_MOVE);
+        Files.move(tempResponse.toPath(), download, ATOMIC_MOVE);
     }
 
     private Path getDownloadPath() {
@@ -943,6 +960,25 @@ class Jttp implements Runnable {
     private static String getDownloadsDirectory() {
         return Preferences.userRoot().node("Jttp").node("directories").get("downloads",
                 format("%s%s%s", getBaseSaveDirectory(), FILE_SEP, "downloads"));
+    }
+
+    private static String formatMarkup(Source source)
+            throws TransformerFactoryConfigurationError, TransformerException {
+
+        var transformer = TransformerFactory.newInstance().newTransformer();
+        transformer.setOutputProperty(OutputKeys.METHOD, "xml");
+        transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
+        transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "no");
+        transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+        transformer.setOutputProperty("{http://xml.apache.org/xalan}indent-amount",
+                Integer.toString(INDENT));
+        var sw = new StringWriter();
+        transformer.transform(source, new StreamResult(sw));
+
+        // Note: for some reason, the transformer inserts spaces and newlines in extant xml, so
+        // get rid of all that extra by replacing the trailing spaces and newline with a simple
+        // newline.
+        return sw.toString().replaceAll("\n *\n", "\n");
     }
 
     /**
@@ -1877,8 +1913,7 @@ class Jttp implements Runnable {
                         }
                         if (isPunctuation(ch)) {
                             // Assume this is a bare number since the rules of json suggest so which
-                            // means
-                            // this punctuation character is a ','.
+                            // means this punctuation character is a ','.
                             setColor(getColorTheme().getKeywordValueColor());
                         }
                         // Reset the current position to resume processing.
@@ -2045,7 +2080,8 @@ class Jttp implements Runnable {
 
         private static final Predicate<Character> CHAR_NOT_CLOSE_TAG = c -> c != '>';
 
-        private static final Predicate<Character> CHAR_CLOSE_TAG = Predicate.not(CHAR_NOT_CLOSE_TAG);
+        private static final Predicate<Character> CHAR_CLOSE_TAG =
+                Predicate.not(CHAR_NOT_CLOSE_TAG);
 
         private static final Predicate<Character> CHAR_NOT_OPEN_TAG = c -> c != '<';
 
@@ -2080,15 +2116,7 @@ class Jttp implements Runnable {
          */
         private char[] indent(char[] markup) {
             try {
-                var transformer = TransformerFactory.newInstance().newTransformer();
-                transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-                transformer.setOutputProperty("{http://xml.apache.org/xalan}indent-amount",
-                        Integer.toString(INDENT));
-                var caw = new CharArrayWriter();
-                var transformedDoc = new StreamResult(caw);
-                var xmlSource = new StreamSource(new CharArrayReader(markup));
-                transformer.transform(xmlSource, transformedDoc);
-                return caw.toCharArray();
+                return formatMarkup(new StreamSource(new CharArrayReader(markup))).toCharArray();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -2529,27 +2557,41 @@ class Jttp implements Runnable {
          * @throws ParserConfigurationException if a ParserConfigurationException occurs.
          */
         void load()
-                throws IOException, XMLStreamException, ParserConfigurationException, SAXException {
+                throws XMLStreamException, ParserConfigurationException, SAXException, IOException {
             // Load headers into HttpURLConnection request properties
             // Set cookies in default CookieHandler's CookieStore.
             try (var sessionFs = FileSystems.newFileSystem(sessionFsUri, LOAD_ENV)) {
                 history = getHistoryXml(sessionFs);
                 doLoadCookies(sessionFs);
                 doLoadHeaders(sessionFs);
+            } catch (FileSystemNotFoundException e) {
+                // No filesystem available since this is the first time using this so just create
+                // the starter history Xml document.
+                history = generateNewHistoryDocument();
             }
         }
 
         /**
          * Save session data.
          * 
-         * @throws IOException        if an IOException occurs.
-         * @throws XMLStreamException if an XMLStreamException occurs.
+         * @param requestData data sent as part of the request, possibly {@code null}.
+         * @param response    response from the server.
+         * 
+         * @throws IOException                          if an IOException occurs.
+         * @throws XMLStreamException                   if an XMLStreamException occurs.
+         * @throws TransformerException                 if a TransformerException occurs.
+         * @throws TransformerFactoryConfigurationError if a TransformerFactoryConfigurationError
+         *                                              occurs.
          */
-        void save() throws IOException, XMLStreamException {
+        void save(String requestData, File response) throws IOException, XMLStreamException,
+                TransformerFactoryConfigurationError, TransformerException {
+            var timeOfRun = Instant.now();
             // Create the filesystem
             try (var sessionFs = FileSystems.newFileSystem(sessionFsUri, SAVE_ENV)) {
                 doSaveCookies(sessionFs);
                 doSaveHeaders(sessionFs);
+                var entryId = doUpdateAndSaveHistory(sessionFs, requestData, timeOfRun);
+                doSaveResponseData(sessionFs, response, timeOfRun, entryId);
             }
         }
 
@@ -2714,6 +2756,11 @@ class Jttp implements Runnable {
             return histDoc;
         }
 
+        private Document generateNewHistoryDocument() throws ParserConfigurationException {
+            var dbf = DocumentBuilderFactory.newInstance();
+            return generateNewHistoryDocument(dbf.newDocumentBuilder());
+        }
+
         private Document generateNewHistoryDocument(DocumentBuilder db) {
             var histDoc = db.newDocument();
             var root = histDoc.createElement("jttp_history");
@@ -2721,7 +2768,96 @@ class Jttp implements Runnable {
             return histDoc;
         }
 
+        private int doUpdateAndSaveHistory(FileSystem sessionFs, String requestData,
+                Instant timeOfRun)
+                throws IOException, TransformerFactoryConfigurationError, TransformerException {
+            var root = history.getDocumentElement(); // jttp_history
+            var id = 1;
+            var elts = root.getElementsByTagName("entry");
+            if (nonNull(elts) && elts.getLength() > 0) {
+                for (int i = 0; i < elts.getLength(); i++) {
+                    var entry = (Element) elts.item(i);
+                    var entryId = Integer.valueOf(entry.getAttribute("id"));
+                    id = Math.max(id, entryId);
+                }
+                id++;
+            }
+            root.appendChild(createEntry(id, requestData, timeOfRun));
+            writeHistory(sessionFs);
+            return id;
+        }
 
+        private Node createEntry(int id, String requestData, Instant timeOfRun) throws IOException {
+            var entry = history.createElement("entry");
+            entry.setAttribute("id", Integer.toString(id));
+            entry.setAttribute("timestamp", Long.toString(timeOfRun.toEpochMilli()));
+
+            var request = history.createElement("request");
+
+            var method = history.createElement("method");
+            var methodText = history.createTextNode(conn.getRequestMethod());
+            method.appendChild(methodText);
+            request.appendChild(method);
+
+            var uri = history.createElement("uri");
+            var uriText = history.createTextNode(conn.getURL().getPath());
+            uri.appendChild(uriText);
+            request.appendChild(uri);
+
+            if (nonNull(conn.getURL().getQuery())) {
+                var query = history.createElement("query");
+                var queryString = history.createCDATASection(conn.getURL().getQuery());
+                query.appendChild(queryString);
+                request.appendChild(query);
+            }
+
+            if (nonNull(requestData) && !requestData.isEmpty() && !requestData.isBlank()) {
+                var data = history.createElement("data");
+                var dataString = history.createCDATASection(requestData);
+                data.appendChild(dataString);
+                request.appendChild(data);
+            }
+            entry.appendChild(request);
+
+            var response = history.createElement("response");
+
+            var status = history.createElement("status");
+            var statuscode = history.createTextNode(Integer.toString(conn.getResponseCode()));
+            status.appendChild(statuscode);
+            response.appendChild(status);
+
+            if (nonNull(conn.getHeaderField("Content-Type"))) {
+                var contentType = history.createElement("content_type");
+                var contentTypeString = history.createTextNode(conn.getHeaderField("Content-Type"));
+                contentType.appendChild(contentTypeString);
+                response.appendChild(contentType);
+            }
+
+            entry.appendChild(response);
+            return entry;
+        }
+
+        private void writeHistory(FileSystem sessionFs)
+                throws TransformerFactoryConfigurationError, TransformerException, IOException {
+            var historyXml = File.createTempFile("history", ".xml");
+            if (DELETE_TEMPFILES) {
+                historyXml.deleteOnExit();
+            }
+
+            var formatted = formatMarkup(new DOMSource(history));
+            var historyXmlAsPath = Paths.get(historyXml.toURI());
+            Files.writeString(historyXmlAsPath, formatted, CREATE);
+            var historyXmlInSession = sessionFs.getPath("/history.xml");
+            Files.copy(historyXmlAsPath, historyXmlInSession, REPLACE_EXISTING);
+        }
+
+        private void doSaveResponseData(FileSystem sessionFs, File response, Instant timeOfRun,
+                int entryId) throws IOException {
+            var responseAsPath = Paths.get(response.toURI());
+            var responseInSession =
+                    sessionFs.getPath(format("/entry-%d-%d", entryId, timeOfRun.toEpochMilli()));
+            Files.copy(responseAsPath, responseInSession, REPLACE_EXISTING);
+        }
 
         /**
          * Save a file named {@code cookies.xml} in the session zip file.
@@ -2756,7 +2892,8 @@ class Jttp implements Runnable {
                     xsw.writeStartElement("jttp_cookies");
                     var indentLevel = 1;
                     doFormat(xsw, indentLevel);
-                    for (var setCookie : setCookies) {
+                    for (int i = 0; i < setCookies.size(); i++) {
+                        var setCookie = setCookies.get(i);
                         xsw.writeStartElement("cookies");
                         doFormat(xsw, ++indentLevel);
                         var httpCookies = HttpCookie.parse(setCookie);
@@ -2818,8 +2955,7 @@ class Jttp implements Runnable {
                         }
                         doFormat(xsw, --indentLevel);
                         xsw.writeEndElement();
-                        doFormat(xsw, --indentLevel);
-                        xsw.writeEndElement();
+                        doFormat(xsw, i < setCookies.size() - 1 ? indentLevel : 0);
                     }
                 }
                 xsw.writeEndDocument();
