@@ -20,8 +20,8 @@ import javax.xml.transform.stream.StreamSource;
  * the XML (default is {@value XmlFormat#DEFAULT_INDENT}).
  * 
  * <p>
- * Set the system property {@code xmlformat.showtraces} to
- * {@code true} to show stack traces from exceptions.
+ * Set the system property {@code xmlformat.showtraces} to {@code true} to show stack traces from
+ * exceptions.
  */
 class XmlFormat implements Runnable {
 
@@ -60,6 +60,8 @@ class XmlFormat implements Runnable {
     @Override
     public void run() {
 
+        var pw = getOut();
+
         try {
             var transformer = TransformerFactory.newInstance().newTransformer();
             transformer.setOutputProperty(OutputKeys.INDENT, getIndent());
@@ -72,15 +74,14 @@ class XmlFormat implements Runnable {
             transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, getOmitXmlDecl());
             var sw = new StringWriter();
             var transformedDoc = new StreamResult(sw);
-            var xmlSource = new StreamSource(in);
+            var xmlSource = new StreamSource(getIn());
             transformer.transform(xmlSource, transformedDoc);
 
             // Output string to byte array
             var formattedXml = sw.toString().replaceAll("\n *\n", "\n").replace("--><!", "-->\n<!")
                     .replace("?><", "?>\n<");
-            out.println(formattedXml);
-            out.flush();
-            System.exit(0);
+            pw.println(formattedXml);
+            pw.flush();
         } catch (Exception e) {
             System.err.printf("error %s: %s%n", getClass().getName(), e.getMessage());
             if (SHOWTRACES) {
@@ -90,7 +91,7 @@ class XmlFormat implements Runnable {
         } finally {
             try {
                 in.close();
-                out.close();
+                pw.close();
             } catch (IOException e) {
                 if (SHOWTRACES) {
                     e.printStackTrace();
@@ -170,13 +171,12 @@ class XmlFormat implements Runnable {
                         }
                     }
                 } else {
-                    var opt = arg.substring(1).toCharArray()[0];
+                    var opt = arg.charAt(1);
                     if (opt == 'h') {
                         showUsage(instance);
                         showOptions();
                         System.exit(2);
-                    }
-                    if (!requireArgs.contains(opt)) {
+                    } else if (!requireArgs.contains(opt)) {
                         setFieldOn(instance, opt);
                     } else if (i >= args.length - 1) {
                         showErrorAndUsage(instance,
