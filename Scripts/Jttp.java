@@ -978,7 +978,7 @@ class Jttp implements Runnable {
         // Note: for some reason, the transformer inserts spaces and newlines in extant xml, so
         // get rid of all that extra by replacing the trailing spaces and newline with a simple
         // newline.
-        return sw.toString().replaceAll("\n *\n", "\n");
+        return sw.toString().replaceAll("\n *\n", "\n").replace("?><", "?>\n<");
     }
 
     /**
