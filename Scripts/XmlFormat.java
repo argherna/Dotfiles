@@ -21,7 +21,7 @@ import javax.xml.transform.stream.StreamSource;
  * 
  * <p>
  * Set the system property {@code xmlformat.showtraces} to
- * {@code true) to show stack traces from exceptions.
+ * {@code true} to show stack traces from exceptions.
  */
 class XmlFormat implements Runnable {
 
