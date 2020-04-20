@@ -982,6 +982,119 @@ class Jttp implements Runnable {
     }
 
     /**
+     * Authenticator implementation used for gathering username and password.
+     */
+    static class JttpAuthenticator extends Authenticator {
+
+        private final String username;
+
+        private final char[] password;
+
+        /**
+         * Construct a new instance of JttpAuthenticator.
+         * 
+         * <p>
+         * When invoked with the username, password is prompted. Note that {@link System#console()
+         * System.console} must not return {@code null} for this to work.
+         * 
+         * @param username the username.
+         */
+        JttpAuthenticator(String username) {
+            this(username, System.console().readPassword(RB.getString("jttp.password.prompt")));
+        }
+
+        /**
+         * Construct a new instance of JttpAuthenticator with username and password pre-populated.
+         * 
+         * @param username the username.
+         * @param password the password.
+         */
+        JttpAuthenticator(String username, char[] password) {
+            this.username = username;
+            this.password = password.clone();
+        }
+
+        @Override
+        protected PasswordAuthentication getPasswordAuthentication() {
+            return new PasswordAuthentication(username, password);
+        }
+
+        @Override
+        public String toString() {
+            return "JttpAuthenticator [username=" + username + "]";
+        }
+    }
+
+    /**
+     * Allows access to certain internal Jttp objects from within pre- and post-process scripts.
+     * 
+     * <p>
+     * There should be separate instances of JttpScriptObject associated with pre-processing and
+     * post-processing. That is, each phase gets its own instance. However, the HttpURLConnection
+     * will be the same object in both phases but in different states.
+     * 
+     * <p>
+     * The pre-processing phase can modify the HttpURLConnection as normal by setting headers,
+     * cookies, etc. The response file will be unavailable in pre-processing.
+     * 
+     * <p>
+     * The post-processing phase can read the HttpURLConnection as normal such as headers and
+     * cookies. The response file will be available and its data processed by the script.
+     * Post-processing should not modify the contents of this file.
+     */
+    static class JttpScriptObject {
+
+        private static System.Logger SCRIPT_LOGGER =
+                System.getLogger(JttpScriptObject.class.getName());
+
+        private final HttpURLConnection conn;
+
+        private final File response;
+
+        /**
+         * Construct a new JttpScriptObject.
+         * 
+         * @param conn the HttpURLConnection associated with Jttp.
+         */
+        JttpScriptObject(HttpURLConnection conn) {
+            this(conn, null);
+        }
+
+        /**
+         * 
+         * @param conn     the HttpURLConnection associated with Jttp.
+         * @param response the response file (a temporary file).
+         */
+        public JttpScriptObject(HttpURLConnection conn, File response) {
+            this.conn = conn;
+            this.response = response;
+        }
+
+        /**
+         * @return the HttpURLConnection associated with Jttp.
+         */
+        final HttpURLConnection getHttpURLConnection() {
+            return conn;
+        }
+
+        /**
+         * @return the response (temporary) file, possibly {@code null} if in pre-processing phase.
+         */
+        final File getResponseFile() {
+            return response;
+        }
+
+        /**
+         * Logs a message at INFO.
+         * 
+         * @param msg message to log.
+         */
+        final void log(String msg) {
+            SCRIPT_LOGGER.log(INFO, msg);
+        }
+    }
+
+    /**
      * Holder type used for handling request items specified on the command line.
      */
     private static class Pair<N, V> {
@@ -1062,74 +1175,6 @@ class Jttp implements Runnable {
         ALL;
     }
 
-    /**
-     * Allows access to certain internal Jttp objects from within pre- and post-process scripts.
-     * 
-     * <p>
-     * There should be separate instances of JttpScriptObject associated with pre-processing and
-     * post-processing. That is, each phase gets its own instance. However, the HttpURLConnection
-     * will be the same object in both phases but in different states.
-     * 
-     * <p>
-     * The pre-processing phase can modify the HttpURLConnection as normal by setting headers,
-     * cookies, etc. The response file will be unavailable in pre-processing.
-     * 
-     * <p>
-     * The post-processing phase can read the HttpURLConnection as normal such as headers and
-     * cookies. The response file will be available and its data processed by the script.
-     * Post-processing should not modify the contents of this file.
-     */
-    static class JttpScriptObject {
-
-        private static System.Logger SCRIPT_LOGGER =
-                System.getLogger(JttpScriptObject.class.getName());
-
-        private final HttpURLConnection conn;
-
-        private final File response;
-
-        /**
-         * Construct a new JttpScriptObject.
-         * 
-         * @param conn the HttpURLConnection associated with Jttp.
-         */
-        JttpScriptObject(HttpURLConnection conn) {
-            this(conn, null);
-        }
-
-        /**
-         * 
-         * @param conn     the HttpURLConnection associated with Jttp.
-         * @param response the response file (a temporary file).
-         */
-        public JttpScriptObject(HttpURLConnection conn, File response) {
-            this.conn = conn;
-            this.response = response;
-        }
-
-        /**
-         * @return the HttpURLConnection associated with Jttp.
-         */
-        final HttpURLConnection getHttpURLConnection() {
-            return conn;
-        }
-
-        /**
-         * @return the response (temporary) file, possibly {@code null} if in pre-processing phase.
-         */
-        final File getResponseFile() {
-            return response;
-        }
-
-        /**
-         * Logs a message at INFO.
-         * 
-         * @param msg message to log.
-         */
-        final void log(String msg) {
-            SCRIPT_LOGGER.log(INFO, msg);
-        }
-    }
 
     /**
      * ANSI Color enumeration.
@@ -1220,50 +1265,6 @@ class Jttp implements Runnable {
 
         public AnsiColor getFunctionColor() {
             return functionColor;
-        }
-    }
-
-    /**
-     * Authenticator implementation used for gathering username and password.
-     */
-    static class JttpAuthenticator extends Authenticator {
-
-        private final String username;
-
-        private final char[] password;
-
-        /**
-         * Construct a new instance of JttpAuthenticator.
-         * 
-         * <p>
-         * When invoked with the username, password is prompted. Note that {@link System#console()
-         * System.console} must not return {@code null} for this to work.
-         * 
-         * @param username the username.
-         */
-        JttpAuthenticator(String username) {
-            this(username, System.console().readPassword(RB.getString("jttp.password.prompt")));
-        }
-
-        /**
-         * Construct a new instance of JttpAuthenticator with username and password pre-populated.
-         * 
-         * @param username the username.
-         * @param password the password.
-         */
-        JttpAuthenticator(String username, char[] password) {
-            this.username = username;
-            this.password = password.clone();
-        }
-
-        @Override
-        protected PasswordAuthentication getPasswordAuthentication() {
-            return new PasswordAuthentication(username, password);
-        }
-
-        @Override
-        public String toString() {
-            return "JttpAuthenticator [username=" + username + "]";
         }
     }
 
@@ -2736,6 +2737,22 @@ class Jttp implements Runnable {
             }
         }
 
+        /**
+         * Instantiates the history document for this Session.
+         * 
+         * <p>
+         * First, try to read an existing history document on the Session FileSystem. Failing that,
+         * generate a new one.
+         * 
+         * @param sessionFs the Session FileSystem.
+         * 
+         * @return Document containing history data.
+         * 
+         * @throws IOException                  if an IOException occurs.
+         * @throws MalformedURLException        if a MalformedURLException occurs.
+         * @throws ParserConfigurationException if a ParserConfigurationException occurs.
+         * @throws SAXException                 if a SAXException occurs.
+         */
         private Document getHistoryXml(FileSystem sessionFs) throws ParserConfigurationException,
                 MalformedURLException, SAXException, IOException {
             var historyXml = sessionFs.getPath("/history.xml");
@@ -2756,11 +2773,18 @@ class Jttp implements Runnable {
             return histDoc;
         }
 
+        /**
+         * @return Document containing root element for history data.
+         */
         private Document generateNewHistoryDocument() throws ParserConfigurationException {
             var dbf = DocumentBuilderFactory.newInstance();
             return generateNewHistoryDocument(dbf.newDocumentBuilder());
         }
 
+        /**
+         * @param db a DocumentBuilder.
+         * @return Document containing root element for history data.
+         */
         private Document generateNewHistoryDocument(DocumentBuilder db) {
             var histDoc = db.newDocument();
             var root = histDoc.createElement("jttp_history");
@@ -2768,6 +2792,20 @@ class Jttp implements Runnable {
             return histDoc;
         }
 
+        /**
+         * Adds an entry with the appropriate ID and saves it to the Session FileSystem.
+         * 
+         * @param sessionFs   FileSystem to write the history document to.
+         * @param requestData data sent by the request, possibly null or empty.
+         * @param timeOfRun   Instant the request is being recorded.
+         * 
+         * @return the ID of the entry appended to the history.
+         * 
+         * @throws IOException                          if an IOException occurs.
+         * @throws TransformerFactoryConfigurationError if a TransformerFactoryConfigurationError
+         *                                              occurs.
+         * @throws TransformerException                 if a TransformerException occurs.
+         */
         private int doUpdateAndSaveHistory(FileSystem sessionFs, String requestData,
                 Instant timeOfRun)
                 throws IOException, TransformerFactoryConfigurationError, TransformerException {
@@ -2787,6 +2825,16 @@ class Jttp implements Runnable {
             return id;
         }
 
+        /**
+         * Creates an Entry in the history document.
+         * 
+         * @param id          the ID for the entry.
+         * @param requestData data sent by the request, possibly null or empty.
+         * @param timeOfRun   Instant the request is being recorded.
+         * @return the entry Node.
+         * 
+         * @throws IOException if an IOException occurs.
+         */
         private Node createEntry(int id, String requestData, Instant timeOfRun) throws IOException {
             var entry = history.createElement("entry");
             entry.setAttribute("id", Integer.toString(id));
@@ -2837,6 +2885,16 @@ class Jttp implements Runnable {
             return entry;
         }
 
+        /**
+         * Writes the history to the Session FileSystem.
+         * 
+         * @param sessionFs where to write the history.
+         * 
+         * @throws IOException                          if an IOException occurs.
+         * @throws TransformerFactoryConfigurationError if a TransformerFactoryConfigurationError
+         *                                              occurs.
+         * @throws TransformerException                 if a TransformerException occurs.
+         */
         private void writeHistory(FileSystem sessionFs)
                 throws TransformerFactoryConfigurationError, TransformerException, IOException {
             var historyXml = File.createTempFile("history", ".xml");
@@ -2851,6 +2909,19 @@ class Jttp implements Runnable {
             Files.copy(historyXmlAsPath, historyXmlInSession, REPLACE_EXISTING);
         }
 
+        /**
+         * Writes the response data to a file in the Session FileSystem.
+         * 
+         * <p>
+         * File name has the format {@code entry-[ID]-[timeOfRunInMillis]}.
+         * 
+         * @param sessionFs the Session FileSystem.
+         * @param response  the response data File.
+         * @param timeOfRun Instant the request is being recorded.
+         * @param entryId   Id for the entry.
+         * 
+         * @throws IOException if an IOException occurs.
+         */
         private void doSaveResponseData(FileSystem sessionFs, File response, Instant timeOfRun,
                 int entryId) throws IOException {
             var responseAsPath = Paths.get(response.toURI());
