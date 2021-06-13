@@ -37,16 +37,6 @@ def var_state(**kwargs):
     return [f'{k}: {v}' for k, v in kwargs.items()]
 
 
-def naive_slugify(text):
-    ''' Returns the slug of the given text.
-
-        :param text: the text to turn into a slug.
-        :return: slug of text
-        :rtype: str
-    '''
-    return text.replace(' ', '-').lower()
-
-
 def set_permission(gh_owner, gh_user, repo, permission={}):
     ''' Sets the permission for the given user on the given repository.
 
