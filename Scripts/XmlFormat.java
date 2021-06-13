@@ -209,6 +209,8 @@ class XmlFormat implements Runnable {
                 instance.setOut(new PrintWriter(new File(arg)));
                 break;
             default:
+                showErrorAndUsage(instance, String.format("Unrecognized option \"-%c\".", opt));
+                System.exit(1);
                 break;
         }
     }
@@ -222,6 +224,8 @@ class XmlFormat implements Runnable {
                 instance.setOmitXmlDecl(true);
                 break;
             default:
+                showErrorAndUsage(instance, String.format("Unrecognized option \"-%c\".", opt));
+                System.exit(1);
                 break;
         }
     }
@@ -241,13 +245,13 @@ class XmlFormat implements Runnable {
         System.err.println("Formats XML input.");
         System.err.println();
         System.err.println("Options:");
-        System.err.println(" -C charset    Charset to write output to (default is "
+        System.err.println("  -C charset    Charset to write output to (default is "
                 + Charset.defaultCharset() + ").");
-        System.err.println(" -h            Shows help message and exits.");
-        System.err.println(" -i infile     Input file (default is System.in).");
-        System.err.println(" -N            Do not indent the output.");
-        System.err.println(" -O            Omit the XML declaration in the output.");
-        System.err.println(" -o outfile    Output file of formatted XML (default is System.out).");
+        System.err.println("  -h            Shows help message and exits.");
+        System.err.println("  -i infile     Input file (default is System.in).");
+        System.err.println("  -N            Do not indent the output.");
+        System.err.println("  -O            Omit the XML declaration in the output.");
+        System.err.println("  -o outfile    Output file of formatted XML (default is System.out).");
         System.err.println();
         System.err.println(
                 "Set system property xmlformat.indent to control the number of spaces of output");

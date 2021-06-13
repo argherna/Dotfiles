@@ -20,7 +20,7 @@ from argparse import RawDescriptionHelpFormatter
 import getpass
 import json
 import logging
-import requests
+# import requests
 import sys
 import urllib
 
@@ -43,115 +43,115 @@ class GitHubUnsuccessError(Exception):
     pass
 
 
-def get_auth(auth):
-    '''Separate username and password. Prompts for password if none present.'''
-    user = None
-    password = None
+# def get_auth(auth):
+#     '''Separate username and password. Prompts for password if none present.'''
+#     user = None
+#     password = None
 
-    if auth is not None:
-        try:
-            [user, password] = auth.split(':')
-        except ValueError:
-            user = cli_args.auth[0]
-            password = getpass.getpass()
+#     if auth is not None:
+#         try:
+#             [user, password] = auth.split(':')
+#         except ValueError:
+#             user = cli_args.auth[0]
+#             password = getpass.getpass()
 
-    return user, password
-
-
-def label_request_url(repo_owner, repo_name, label_name):
-    '''Returns a URL suitable for reading, updating, and deleting a single label.'''
-    return 'https://api.github.com/repos/%s/%s/labels/%s' % (repo_owner, repo_name, urllib.quote(label_name))
+#     return user, password
 
 
-def labels_request_url(repo_owner, repo_name):
-    '''Returns a URL suitable for creating labels or reading all labels.'''
-    return 'https://api.github.com/repos/%s/%s/labels' % (repo_owner, repo_name)
+# def label_request_url(repo_owner, repo_name, label_name):
+#     '''Returns a URL suitable for reading, updating, and deleting a single label.'''
+#     return 'https://api.github.com/repos/%s/%s/labels/%s' % (repo_owner, repo_name, urllib.quote(label_name))
 
 
-def label_exists(label_name, repo_owner, repo_name, auth):
-    '''Returns True if the Label exists.'''
-    req_url = label_request_url(repo_owner, repo_name, label_name)
-    r = requests.head(req_url, auth=auth)
-    return r.status_code == 200
+# def labels_request_url(repo_owner, repo_name):
+#     '''Returns a URL suitable for creating labels or reading all labels.'''
+#     return 'https://api.github.com/repos/%s/%s/labels' % (repo_owner, repo_name)
 
 
-def delete_label(label, repo_owner, repo_name, auth):
-    '''Calls the GitHub API to delete the given label.'''
-    req_url = label_request_url(repo_owner, repo_name, label['name'])
-    r = requests.delete(req_url, auth=auth)
-    if r.status_code != 204:
-        raise GitHubUnsuccessError(
-            'Failed to delete label %s' % (label['name']))
+# def label_exists(label_name, repo_owner, repo_name, auth):
+#     '''Returns True if the Label exists.'''
+#     req_url = label_request_url(repo_owner, repo_name, label_name)
+#     r = requests.head(req_url, auth=auth)
+#     return r.status_code == 200
 
 
-def save_label(label, repo_owner, repo_name, auth):
-    '''Calls the GitHub API to save the given label.'''
-    label_json = json.dumps(label)
-    req_url = labels_request_url(repo_owner, repo_name)
-    r = requests.post(req_url, auth=auth, data=label_json)
-    if r.status_code != 201:
-        raise GitHubUnsuccessError(
-            'Failed to update label %s (%d)' % (label['name'], r.status_code))
+# def delete_label(label, repo_owner, repo_name, auth):
+#     '''Calls the GitHub API to delete the given label.'''
+#     req_url = label_request_url(repo_owner, repo_name, label['name'])
+#     r = requests.delete(req_url, auth=auth)
+#     if r.status_code != 204:
+#         raise GitHubUnsuccessError(
+#             'Failed to delete label %s' % (label['name']))
 
 
-def update_label(label, repo_owner, repo_name, auth):
-    '''Calls the GitHub API to update a single label.'''
-    label_json = json.dumps(label)
-    req_url = label_request_url(repo_owner, repo_name, label['name'])
-    r = requests.patch(req_url, auth=auth, data=label_json)
-    if r.status_code != 200:
-        raise GitHubUnsuccessError(
-            'Failed to update label %s' % (label['name']))
+# def save_label(label, repo_owner, repo_name, auth):
+#     '''Calls the GitHub API to save the given label.'''
+#     label_json = json.dumps(label)
+#     req_url = labels_request_url(repo_owner, repo_name)
+#     r = requests.post(req_url, auth=auth, data=label_json)
+#     if r.status_code != 201:
+#         raise GitHubUnsuccessError(
+#             'Failed to update label %s (%d)' % (label['name'], r.status_code))
 
 
-def delete_main(cli_args):
-    '''Deletes the list of GitHub labels.'''
-    auth = (get_auth(cli_args.auth[0]))
-    for label in json.loads(cli_args.infile.read()):
-        if label_exists(label['name'],
-                        cli_args.repository_owner[0],
-                        cli_args.repository_name[0],
-                        auth):
-            delete_label(label,
-                         cli_args.repository_owner[0],
-                         cli_args.repository_name[0],
-                         auth)
+# def update_label(label, repo_owner, repo_name, auth):
+#     '''Calls the GitHub API to update a single label.'''
+#     label_json = json.dumps(label)
+#     req_url = label_request_url(repo_owner, repo_name, label['name'])
+#     r = requests.patch(req_url, auth=auth, data=label_json)
+#     if r.status_code != 200:
+#         raise GitHubUnsuccessError(
+#             'Failed to update label %s' % (label['name']))
 
 
-def list_main(cli_args):
-    '''Lists the GitHub labels.'''
-    req_url = labels_request_url(cli_args.repository_owner[0],
-                                 cli_args.repository_name[0])
-
-    r = requests.get(req_url, auth=(get_auth(cli_args.auth[0])))
-    if r.status_code != 200:
-        raise GitHubUnsuccessError('Failed to get labels!')
-
-    labels = r.json()
-    if cli_args.prune_urls:
-        for label in labels:
-            label.pop('url', None)
-
-    print >>cli_args.outfile, json.dumps(labels, sort_keys=True, indent=2)
+# def delete_main(cli_args):
+#     '''Deletes the list of GitHub labels.'''
+#     auth = (get_auth(cli_args.auth[0]))
+#     for label in json.loads(cli_args.infile.read()):
+#         if label_exists(label['name'],
+#                         cli_args.repository_owner[0],
+#                         cli_args.repository_name[0],
+#                         auth):
+#             delete_label(label,
+#                          cli_args.repository_owner[0],
+#                          cli_args.repository_name[0],
+#                          auth)
 
 
-def upload_main(cli_args):
-    '''Uploads the list of labels from input.'''
-    auth = (get_auth(cli_args.auth[0]))
-    for label in json.loads(cli_args.infile.read()):
-        if label_exists(label['name'],
-                        cli_args.repository_owner[0],
-                        cli_args.repository_name[0],
-                        auth):
-            update_label(label,
-                         cli_args.repository_owner[0],
-                         cli_args.repository_name[0],
-                         auth)
-        else:
-            save_label(label,
-                       cli_args.repository_owner[0],
-                       cli_args.repository_name[0],
-                       auth)
+# def list_main(cli_args):
+#     '''Lists the GitHub labels.'''
+#     req_url = labels_request_url(cli_args.repository_owner[0],
+#                                  cli_args.repository_name[0])
+
+#     r = requests.get(req_url, auth=(get_auth(cli_args.auth[0])))
+#     if r.status_code != 200:
+#         raise GitHubUnsuccessError('Failed to get labels!')
+
+#     labels = r.json()
+#     if cli_args.prune_urls:
+#         for label in labels:
+#             label.pop('url', None)
+
+#     print >>cli_args.outfile, json.dumps(labels, sort_keys=True, indent=2)
+
+
+# def upload_main(cli_args):
+#     '''Uploads the list of labels from input.'''
+#     auth = (get_auth(cli_args.auth[0]))
+#     for label in json.loads(cli_args.infile.read()):
+#         if label_exists(label['name'],
+#                         cli_args.repository_owner[0],
+#                         cli_args.repository_name[0],
+#                         auth):
+#             update_label(label,
+#                          cli_args.repository_owner[0],
+#                          cli_args.repository_name[0],
+#                          auth)
+#         else:
+#             save_label(label,
+#                        cli_args.repository_owner[0],
+#                        cli_args.repository_name[0],
+#                        auth)
 
 
 if __name__ == '__main__':
@@ -218,13 +218,13 @@ if __name__ == '__main__':
                         level=numeric_level)
 
     try:
-        if cli_args.command_to_execute == 'list':
-            list_main(cli_args)
-        elif cli_args.command_to_execute == 'upload':
-            upload_main(cli_args)
-        elif cli_args.command_to_execute == 'delete':
-            delete_main(cli_args)
-        else:
+        # if cli_args.command_to_execute == 'list':
+        #     list_main(cli_args)
+        # elif cli_args.command_to_execute == 'upload':
+        #     upload_main(cli_args)
+        # elif cli_args.command_to_execute == 'delete':
+        #     delete_main(cli_args)
+        # else:
             sys.stderr.write('Unknown function!')
             sys.exit(1)
     except GitHubUnsuccessError as message:

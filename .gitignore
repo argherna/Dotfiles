@@ -3,3 +3,4 @@
 *.class
 *.code-workspace
 Scripts/.vscode/launch.json
+.DS_Store

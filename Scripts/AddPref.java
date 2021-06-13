@@ -1,37 +1,41 @@
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
-import java.util.prefs.BackingStoreException;
+import java.util.Set;
 import java.util.prefs.Preferences;
 
 /**
- * Removes a preference key or node.
+ * Add a preference for class or node.
  * 
  * <p>
- * Set the system property {@code rmpref.showtraces} to {@code true} to show stack traces from
+ * Set the system property {@code addpref.showtraces} to {@code true} to show stack traces from
  * exceptions.
  */
-class RmPref implements Runnable {
+class AddPref implements Runnable {
 
-  private static final Boolean SHOWTRACES = Boolean.getBoolean("rmpref.showtraces");
+  private static final Boolean SHOWTRACES = Boolean.getBoolean("addpref.showtraces");
 
   private boolean nodeIsClass = false;
 
   private boolean systemRoot = false;
 
+  private PrefType preftype = PrefType.STRING;
+
   private String nodename;
 
   private String key;
 
+  private String value;
+
   public static void main(String... args) {
     try {
-      var program = args.length > 0 ? parseArgs(new RmPref(), args) : null;
+      var program = args.length > 0 ? parseArgs(new AddPref(), args) : null;
       if (isNull(program)) {
-        showErrorAndUsage(new RmPref(), "Required arguments missing");
+        showErrorAndUsage(new AddPref(), "Required arguments missing");
         System.exit(1);
       }
       program.run();
     } catch (Exception e) {
-      System.err.printf("error %s: %s%n", RmPref.class.getName(), e.getMessage());
+      System.err.printf("error %s: %s%n", AddPref.class.getName(), e.getMessage());
       if (SHOWTRACES) {
         e.printStackTrace();
       }
@@ -39,12 +43,15 @@ class RmPref implements Runnable {
     }
   }
 
+  static enum PrefType {
+    BOOLEAN, DOUBLE, FLOAT, INT, LONG, STRING;
+  }
+
   @Override
   public void run() {
-
-    Preferences p = null;
-    if (nonNull(getNodename()) && nodeIsClass()) {
-      Class<?> c = null;
+    Class<?> c = null;
+    String nodenm = null;
+    if (nodeIsClass()) {
       try {
         c = Class.forName(getNodename());
       } catch (ClassNotFoundException e) {
@@ -55,28 +62,50 @@ class RmPref implements Runnable {
         }
         System.exit(1);
       }
-      p = isSystemRoot() ? Preferences.systemNodeForPackage(c) : Preferences.userNodeForPackage(c);
-    } else if (nonNull(getNodename())) {
-      p = isSystemRoot() ? Preferences.systemRoot().node(getNodename())
-          : Preferences.userRoot().node(getNodename());
     } else {
-      p = isSystemRoot() ? Preferences.systemRoot() : Preferences.userRoot();
+      nodenm = getNodename();
+    }
+
+    Preferences p = null;
+    if (nonNull(c)) {
+      p = isSystemRoot() ? Preferences.systemNodeForPackage(c) : Preferences.userNodeForPackage(c);
+    } else {
+      p = isSystemRoot() ? Preferences.systemRoot().node(nodenm)
+          : Preferences.userRoot().node(nodenm);
     }
 
     var errmsg = "";
     Throwable t = null;
     try {
-      if (nonNull(getKey())) {
-        p.remove(getKey());
-      } else {
-        p.removeNode();
+      switch (getPreftype()) {
+        case BOOLEAN:
+          p.putBoolean(getKey(), Boolean.valueOf(getValue()));
+          break;
+        case DOUBLE:
+          p.putDouble(getKey(), Double.valueOf(getValue()));
+          break;
+        case FLOAT:
+          p.putFloat(getKey(), Float.valueOf(getValue()));
+          break;
+        case INT:
+          p.putInt(getKey(), Integer.valueOf(getValue()));
+          break;
+        case LONG:
+          p.putLong(getKey(), Long.valueOf(getValue()));
+          break;
+        case STRING:
+          p.put(getKey(), getValue());
+          break;
       }
-    } catch (IllegalArgumentException | IllegalStateException | UnsupportedOperationException
-        | BackingStoreException e) {
-      errmsg = e.getMessage();
-      t = e;
+
     } catch (NullPointerException e) {
       errmsg = "Key or value is null";
+      t = e;
+    } catch (NumberFormatException e) {
+      errmsg = String.format("\"%s\" is not a valid %s", getValue(), getPreftype().name());
+      t = e;
+    } catch (IllegalArgumentException | IllegalStateException e) {
+      errmsg = e.getMessage();
       t = e;
     } finally {
       if (nonNull(t)) {
@@ -89,20 +118,28 @@ class RmPref implements Runnable {
     }
   }
 
-  boolean nodeIsClass() {
-    return nodeIsClass;
-  }
-
-  void setNodeIsClass(boolean nodeIsClass) {
-    this.nodeIsClass = nodeIsClass;
-  }
-
   boolean isSystemRoot() {
     return systemRoot;
   }
 
   void setSystemRoot(boolean systemRoot) {
     this.systemRoot = systemRoot;
+  }
+
+  PrefType getPreftype() {
+    return preftype;
+  }
+
+  void setPreftype(PrefType preftype) {
+    this.preftype = preftype;
+  }
+
+  boolean nodeIsClass() {
+    return nodeIsClass;
+  }
+
+  void setNodeIsClass(boolean nodeIsClass) {
+    this.nodeIsClass = nodeIsClass;
   }
 
   String getNodename() {
@@ -121,9 +158,17 @@ class RmPref implements Runnable {
     this.key = key;
   }
 
-  private static RmPref parseArgs(RmPref instance, String... args) {
+  String getValue() {
+    return value;
+  }
+
+  void setValue(String value) {
+    this.value = value;
+  }
+
+  private static AddPref parseArgs(AddPref instance, String... args) {
+    var requireArgs = Set.of('T');
     var allOptsProcessed = false;
-    var firstArgProcessed = false;
     for (int i = 0; i < args.length; i++) {
       var arg = args[i];
       if (arg.startsWith("-") && !allOptsProcessed) {
@@ -134,11 +179,13 @@ class RmPref implements Runnable {
               showUsage(instance);
               showOptions();
               System.exit(2);
+            } else if (!requireArgs.contains(opts[j])) {
+              setFieldOn(instance, opts[j]);
             } else if (j != opts.length - 1 || i >= args.length - 1) {
               showErrorAndUsage(instance, String.format("-%c missing required argument!", opts[j]));
               System.exit(1);
             } else {
-              setFieldOn(instance, opts[j]);
+              setFieldOn(instance, opts[j], args[++i]);
             }
           }
         } else {
@@ -147,27 +194,42 @@ class RmPref implements Runnable {
             showUsage(instance);
             showOptions();
             System.exit(2);
+          } else if (!requireArgs.contains(opt)) {
+            setFieldOn(instance, opt);
           } else if (i >= args.length - 1) {
             showErrorAndUsage(instance, String.format("-%c missing required argument!", opt));
             System.exit(1);
           } else {
-            setFieldOn(instance, opt);
+            setFieldOn(instance, opt, args[++i]);
           }
         }
       } else {
         allOptsProcessed = true;
-        if (!firstArgProcessed) {
+        if (i < args.length - 2) {
           instance.setNodename(arg);
-          firstArgProcessed = true;
-        } else {
+        } else if (i < args.length - 1) {
           instance.setKey(arg);
+        } else if (i < args.length) {
+          instance.setValue(arg);
         }
       }
     }
     return instance;
   }
 
-  private static void setFieldOn(RmPref instance, char opt) {
+  private static void setFieldOn(AddPref instance, char opt, String arg) {
+    switch (opt) {
+      case 'T':
+        instance.setPreftype(PrefType.valueOf(arg));
+        break;
+      default:
+        showErrorAndUsage(instance, String.format("Unrecognized option \"-%c\".", opt));
+        System.exit(1);
+        break;
+    }
+  }
+
+  private static void setFieldOn(AddPref instance, char opt) {
     switch (opt) {
       case 'C':
         instance.setNodeIsClass(true);
@@ -182,29 +244,32 @@ class RmPref implements Runnable {
     }
   }
 
-  private static void showErrorAndUsage(RmPref instance, String error) {
+  private static void showErrorAndUsage(AddPref instance, String error) {
     System.err.printf("error %s: %s%n", instance.getClass().getName(), error);
     showUsage(instance);
   }
 
-  private static void showUsage(RmPref instance) {
-    System.err.printf("usage: %s [-ChS] node-or-class-name [key]%n",
+  private static void showUsage(AddPref instance) {
+    System.err.printf("usage: %s [-ChS] [-T type] node-or-class-name key value%n",
         instance.getClass().getName());
   }
 
   private static void showOptions() {
     System.err.println();
-    System.err.println("Removes a Preference for a class/node from the preference store.");
+    System.err.println("Adds a Preference for a class/node to the preference store.");
     System.err.println();
     System.err.println("Options:");
     System.err.println("  -C                    Treat node name as a fully-qualified class name.");
     System.err.println("  -h                    Shows help message and exits.");
-    System.err.println("  -S                    Remove preference from the system root (default is add");
+    System.err.println("  -S                    Add preference to the system root (default is add");
     System.err.println("                          to the user root).");
+    System.err
+        .println("  -T type               Type the value represents, one of STRING (default),");
+    System.err.println("                           BOOLEAN, DOUBLE, FLOAT, INT, or LONG.");
     System.err.println();
     System.err.println("Arguments:");
     System.err.println("  node-or-class-name    Name of the node or class.");
-    System.err.println("  key                   Key (name) of the preference. If not set, the entire");
-    System.err.println("                          node is deleted.");
+    System.err.println("  key                   Key (name) of the preference.");
+    System.err.println("  value                 Value for the preference.");
   }
 }
