@@ -134,6 +134,9 @@ if __name__ == '__main__':
         logging.basicConfig(format='%(levelname)s: %(message)s',
                             level=logging.DEBUG)
 
+    # Too many flags to pass in as keyword arguments, so use vars(args) as
+    # shortcut (causes us to do some filtering, but better than individually
+    # specifying keyword args; credit https://stackoverflow.com/a/5710402/37776).
     repo_metadata = repo_metadata(**vars(args))
 
     if args.generate_repo_json_only:
