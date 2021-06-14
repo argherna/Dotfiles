@@ -4,7 +4,7 @@ NAME
     ghorgrepo.py
 
 DESCRIPTION
-    Create GitHub organizational repositories.
+    Sets permissions for a GitHub team on an organization repository.
 
 ENVIRONMENT
     GITHUB_PERSONAL_ACCESS_TOKEN
