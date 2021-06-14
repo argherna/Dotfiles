@@ -31,7 +31,7 @@ def var_state(**kwargs):
 
         Sample usage::
 
-           >>> var_state(foo=1, bar='bar').
+           >>> var_state(foo=1, bar='bar')
            ['foo: 1', 'bar: bar']
     '''
     return [f'{k}: {v}' for k, v in kwargs.items()]
