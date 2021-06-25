@@ -6,7 +6,6 @@ Run ``python3 gh_org_admin.py -h`` for how to use.
 
 
 from argparse import ArgumentParser
-from argparse import FileType
 from argparse import RawDescriptionHelpFormatter
 import json
 import logging
