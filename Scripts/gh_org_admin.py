@@ -584,14 +584,15 @@ if __name__ == '__main__':
     parser = ArgumentParser(description=DESC,
                             formatter_class=RawDescriptionHelpFormatter)
 
-    subparsers = parser.add_subparsers(metavar='Entity',
+    subparsers = parser.add_subparsers(metavar='entity',
                                        description='GitHub entities to administer',
-                                       help='Description')
+                                       help='description')
 
     repo_parser = subparsers.add_parser('repo', help='Administer repositories')
 
-    repo_subparsers = repo_parser.add_subparsers(
-        description='GitHub repository administration commands')
+    repo_subparsers = repo_parser.add_subparsers(metavar='command',
+                                                 description='GitHub repository administration commands',
+                                                 help='description')
 
     create_repo_parser = repo_subparsers.add_parser('create', help='Create a new repository',
                                                     parents=[common_group, gh_json_group])
@@ -666,8 +667,9 @@ if __name__ == '__main__':
     perm_parser = subparsers.add_parser(
         'perm', help='Administer permissions (user or team)')
 
-    perm_subparsers = perm_parser.add_subparsers(
-        description='GitHub permission administration commands')
+    perm_subparsers = perm_parser.add_subparsers(metavar='command',
+                                                 description='GitHub permission administration commands',
+                                                 help='description')
 
     rm_perm_parser = perm_subparsers.add_parser('revoke',
                                                 help='Revoke a permission',
@@ -702,8 +704,9 @@ if __name__ == '__main__':
 
     team_parser = subparsers.add_parser('team', help='Administer teams')
 
-    team_subparsers = team_parser.add_subparsers(
-        description='GitHub team administration commands')
+    team_subparsers = team_parser.add_subparsers(metavar='command',
+                                                 description='GitHub team administration commands',
+                                                 help='description')
 
     add_org_team_member_parser = team_subparsers.add_parser('add-org-member',
                                                             help='Adds a member of the organization to the team',
@@ -748,8 +751,9 @@ if __name__ == '__main__':
 
     user_parser = subparsers.add_parser('user', help='Run user commands')
 
-    user_subparsers = user_parser.add_subparsers(
-        description='GitHub user admin commands')
+    user_subparsers = user_parser.add_subparsers(metavar='command',
+                                                 description='GitHub user admin commands',
+                                                 help='description')
     id_user_parser = user_subparsers.add_parser('id',
                                                 help='List user details',
                                                 parents=[debug_group, user_group])
