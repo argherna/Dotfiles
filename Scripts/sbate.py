@@ -26,7 +26,7 @@ OPTIONS
     -W PASSWORD, --password PASSWORD
         Password for the user (default dummy). Use with caution.
 
-    -n, --nologin
+    -S, --suppress-login
         Suppresses login to the SMTP server (useful during testing).
 
     -s 'SUBJECT_TEXT', --subject 'SUBJECT_TEXT'
@@ -102,14 +102,16 @@ EXIT STATUS
 
 from argparse import ArgumentParser
 from argparse import FileType
-from ConfigParser import ConfigParser
-from email import Encoders
-from email.MIMEBase import MIMEBase
-from email.MIMEMultipart import MIMEMultipart
+from configparser import ConfigParser
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+import email
+import logging
 import os
 import smtplib
 import socket
 import sys
+import traceback
 
 DESC = 'Send Binary ATtachment in an Email (sbate)'
 
@@ -124,45 +126,84 @@ FROM_ADDR = 'sender@example.com'
 TO_ADDR = 'receiver@example.com'
 MSG_TXT = 'Hello from sbate.py!'
 
+
+def var_state(**kwargs):
+    ''' Returns a list of variable names and values.
+
+        Sample usage::
+
+           >>> var_state(foo=1, bar='bar')
+           ['foo: 1', 'bar: bar']
+    '''
+    return [f'{k}: {v}' for k, v in kwargs.items()]
+
+
 if __name__ == '__main__':
 
-    arg_parser = ArgumentParser(description=DESC)
-    arg_parser.add_argument(
-        '-H', '--host', metavar='hostname', default=HOST, nargs=1, help='Name of the host running the SMTP server')
-    arg_parser.add_argument('-p', '--port', metavar='n', default=PORT, nargs=1, type=int,
-                            help='Port number the SMTP server is listening on')
-    arg_parser.add_argument(
-        '-u', '--username', metavar='username', default=USERNAME, nargs=1, help='Username with privileges to send email from the SMTP server')
-    arg_parser.add_argument(
-        '-W', '--password', metavar='password', default=PASSWORD, nargs=1, help='Password for the user')
-    arg_parser.add_argument('-s', '--subject', metavar='subject_text', default=SUBJECT, nargs=1,
-                            help='Subject text to use for the email message')
-    arg_parser.add_argument('-f', '--from', dest='from_addr', metavar='from_addr',
-                            default=FROM_ADDR, nargs=1, help='Email address of the sender')
-    arg_parser.add_argument('-t', '--to', dest='to_addr', metavar='to_addr',
-                            default=TO_ADDR, nargs=1, help='Email address of the receiver')
-    arg_parser.add_argument('-m', '--message', metavar='message_text',
-                            default=MSG_TXT, nargs=1, help='The message to send')
-    arg_parser.add_argument('-c', '--config', metavar='filename',
-                            default=CONF_FILENAME, nargs=1, help='Read configuration from a file')
-    arg_parser.add_argument('-n', '--nologin', dest='no_login',
-                            action='store_true', help='Suppress login to SMTP server')
-    arg_parser.add_argument('filename', metavar='FILENAME',
-                            help='Name of the file to attach to the email sent by this program')
+    parser = ArgumentParser(description=DESC)
+    parser.add_argument('-d', '--debug', action='store_true',
+                        help='Turn on debug logging')
+    parser.add_argument('-H', '--host', nargs='?',
+                        metavar='HOSTNAME', default=HOST,
+                        help='Name of the host running the SMTP server')
+    parser.add_argument('-p', '--port', nargs='?',
+                        metavar='N', default=PORT, type=int,
+                        help='Port number the SMTP server is listening on')
+    parser.add_argument('-u', '--username', nargs='?',
+                        metavar='username', default=USERNAME,
+                        help='Username with privileges to send email from the SMTP server')
+    parser.add_argument('-W', '--password', nargs='?',
+                        metavar='PASSWORD', default=PASSWORD,
+                        help='Password for the user')
+    parser.add_argument('-s', '--subject', nargs='?',
+                        metavar='SUBJECT_TEXT', default=SUBJECT,
+                        help='Subject text to use for the email message')
+    parser.add_argument('-f', '--from', nargs='?', metavar='FROM_ADDR',
+                        dest='from_addr', default=FROM_ADDR,
+                        help='Email address of the sender')
+    parser.add_argument('-t', '--to', nargs='?', metavar='TO_ADDR',
+                        dest='to_addr', default=TO_ADDR,
+                        help='Email address of the receiver')
+    parser.add_argument('-m', '--message', nargs='?',
+                        metavar='MESSAGE_TEXT', default=MSG_TXT,
+                        help='The message to send')
+    parser.add_argument('-c', '--config', nargs=1,
+                        metavar='FILENAME', default=CONF_FILENAME,
+                        help='Read configuration from a file')
+    parser.add_argument('-S', '--suppress-login', action='store_true',
+                        help='Suppress login to SMTP server')
+    parser.add_argument('filename', metavar='FILENAME',
+                        help='Name of the file to attach to the email sent by this program')
 
-    cli_args = arg_parser.parse_args()
+    args = parser.parse_args()
 
-    host = cli_args.host
-    port = cli_args.port
-    username = cli_args.username
-    password = cli_args.password
-    subject = cli_args.subject
-    from_addr = cli_args.from_addr
-    to_addr = cli_args.to_addr
-    message = cli_args.message
-    config_file = cli_args.config
-    no_login = cli_args.no_login
-    filename = cli_args.filename
+    try:
+        if args.debug:
+            logging.basicConfig(format='%(levelname)s: %(message)s',
+                                level=logging.DEBUG)
+    except AttributeError:
+        parser.print_usage()
+        sys.exit(1)
+
+    host = args.host
+    port = args.port
+    username = args.username
+    password = args.password
+    subject = args.subject
+    from_addr = args.from_addr
+    to_addr = args.to_addr
+    message = args.message
+    config_file = args.config
+    suppress_login = args.suppress_login
+    filename = args.filename
+
+    try:
+        if args.debug:
+            logging.basicConfig(format='%(levelname)s: %(message)s',
+                                level=logging.DEBUG)
+    except AttributeError:
+        parser.print_usage()
+        sys.exit(1)
 
     if (config_file != CONF_FILENAME) and isinstance(config_file, list):
         config_file = config_file[0]
@@ -188,8 +229,8 @@ if __name__ == '__main__':
             if (password == PASSWORD) and config.has_option('smtp', 'password'):
                 password = config.get('smtp', 'password')
 
-            if not no_login and config.has_option('smtp', 'suppress_login'):
-                no_login = config.getboolean('smtp', 'suppress_login')
+            if not suppress_login and config.has_option('smtp', 'suppress_login'):
+                suppress_login = config.getboolean('smtp', 'suppress_login')
 
         if config.has_section('message'):
 
@@ -205,6 +246,12 @@ if __name__ == '__main__':
             if (message == MSG_TXT) and config.has_option('message', 'message'):
                 message = config.get('message', 'message')
 
+    logging.debug(var_state(host=host, port=port, username=username,
+                            password='** REDACTED **', subject=subject,
+                            from_addr=from_addr, to_addr=to_addr,
+                            message=message,
+                            suppress_login=suppress_login, filename=filename))
+    err = None
     try:
         msg = MIMEMultipart()
         msg['Subject'] = subject
@@ -214,19 +261,26 @@ if __name__ == '__main__':
 
         part = MIMEBase('application', 'octet-stream')
         part.set_payload(open(filename, 'rb').read())
-        Encoders.encode_base64(part)
+        email.encoders.encode_base64(part)
         part.add_header('Content-Disposition', 'attachment; filename="%s"' %
                         os.path.basename(filename))
         msg.attach(part)
 
         smtp = smtplib.SMTP(host, port)
-        if not no_login:
+        if args.debug:
+            smtp.set_debuglevel(1)
+        if not suppress_login:
             smtp.login(username, password)
         smtp.sendmail(from_addr, [to_addr], msg.as_string())
         smtp.quit()
-    except socket.gaierror:
-        print "Can't find SMTP host %s" % HOST
-        sys.exit(1)
-    except IOError:
-        print "Can't find file %s" % filename
-        sys.exit(1)
+    except socket.gaierror as e:
+        print(f'Can\'t find SMTP host {HOST}')
+        err = e
+    except IOError as e:
+        print(f'Can\'t find file {filename}')
+        err = e
+    finally:
+        if err:
+            if args.debug:
+                traceback.print_exception(type(err), err, err.__traceback__)
+            sys.exit(1)
