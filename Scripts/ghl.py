@@ -12,6 +12,7 @@ import json
 import logging
 import os
 import sys
+import traceback
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -133,6 +134,33 @@ def update_label(owner=None, repo=None, label={}):
 
 if __name__ == '__main__':
 
+    httpclient_logger = logging.getLogger("http.client")
+
+    def do_http_client_logging_setup(level=logging.DEBUG):
+        ''' Turn on debugging of the HTTP client used by urllib.
+
+            See `Python3 urllib.request debug (request and response details)<https://gist.github.com/maczniak/db34452555f33805302d2c5557167164>`_ and
+            `this StackOverflow.com <https://stackoverflow.com/a/16337639/37776>`_ answer for details.
+
+            :param level: logging level to use (DEBUG is default)
+        '''
+        def httpclient_log(*args):
+            ''' Masks the print() built-in in the http.client module
+                to use logging instead.
+            '''
+            httpclient_logger.log(level, " ".join(args))
+
+        import http.client
+        http.client.print = httpclient_log
+        http_handler = urllib.request.HTTPHandler(debuglevel=1)
+        try:
+            import ssl
+            https_handler = urllib.request.HTTPSHandler(debuglevel=1)
+            opener = urllib.request.build_opener(http_handler, https_handler)
+        except ImportError:
+            opener = urllib.request.build_opener(http_handler)
+        urllib.request.install_opener(opener)
+
     def label_exists(owner=None, repo=None, label_name=None):
         ''' Returns True if the given label name is in the GitHub repository.
 
@@ -207,7 +235,10 @@ if __name__ == '__main__':
                          command line arguments.
         '''
         labels = json.loads(args.infile.read())
-        # upload_labels(args.gh_owner[0], args.gh_repo[0], labels)
+        if args.debug:
+            logging.debug(' '.join(
+                ['send:', json.dumps(labels, indent=2, sort_keys=True)]))
+
         if isinstance(labels, list):
             for label in labels:
                 update_or_save_label(args.gh_owner[0], args.gh_repo[0], label)
@@ -276,6 +307,7 @@ if __name__ == '__main__':
         if args.debug:
             logging.basicConfig(format='%(levelname)s: %(message)s',
                                 level=logging.DEBUG)
+            do_http_client_logging_setup()
     except AttributeError:
         parser.print_usage()
         sys.exit(1)
@@ -292,11 +324,14 @@ if __name__ == '__main__':
     except urllib.error.HTTPError as e:
         print(f'{e.code} - {e.msg}', file=sys.stderr)
         print(
-            f'{json.dumps(e.read().decode("utf-8"), indent=2, sort_keys=True, ensure_ascii=False)}')
+            f'{json.dumps(e.read().decode("utf-8"), indent=2, sort_keys=True, ensure_ascii=False)}',
+            file=sys.stderr)
         err = e
     except ValueError as e:
         print(e, file=sys.stderr)
         err = e
     finally:
         if err:
+            if args.debug:
+                traceback.print_exception(type(err), err, err.__traceback__)
             sys.exit(1)

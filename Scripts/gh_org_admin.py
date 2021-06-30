@@ -11,6 +11,7 @@ import json
 import logging
 import os
 import sys
+import traceback
 import urllib.request
 
 
@@ -351,6 +352,33 @@ if __name__ == '__main__':
     EXCLUDED_KEYS = ('debug', 'func', 'generate_json_only', 'template_repo')
     FIRST_ITEM_KEYS = ('email', 'invitee_id', 'parent_team_id')
 
+    httpclient_logger = logging.getLogger("http.client")
+
+    def do_http_client_logging_setup(level=logging.DEBUG):
+        ''' Turn on debugging of the HTTP client used by urllib.
+
+            See `Python3 urllib.request debug (request and response details)<https://gist.github.com/maczniak/db34452555f33805302d2c5557167164>`_ and
+            `this StackOverflow.com <https://stackoverflow.com/a/16337639/37776>`_ answer for details.
+
+            :param level: logging level to use (DEBUG is default)
+        '''
+        def httpclient_log(*args):
+            ''' Masks the print() built-in in the http.client module
+                to use logging instead.
+            '''
+            httpclient_logger.log(level, " ".join(args))
+
+        import http.client
+        http.client.print = httpclient_log
+        http_handler = urllib.request.HTTPHandler(debuglevel=1)
+        try:
+            import ssl
+            https_handler = urllib.request.HTTPSHandler(debuglevel=1)
+            opener = urllib.request.build_opener(http_handler, https_handler)
+        except ImportError:
+            opener = urllib.request.build_opener(http_handler)
+        urllib.request.install_opener(opener)
+
     def create_create_metadata_specs(**kwargs):
         ''' Create and return dict with create metadata specifications for 
             creating a GitHub repository or team.
@@ -369,6 +397,15 @@ if __name__ == '__main__':
         first_items_in_lists = {k: v[0] for k, v in kwargs.items()
                                 if v and (k in FIRST_ITEM_KEYS)}
         return {**name, **strs_and_bools, **lists, **first_items_in_lists}
+
+    def do_json_log(level=logging.DEBUG, data={}):
+        ''' Log json to send to GitHub.
+
+            :param level: logging level (DEBUG by default)
+            :param data: dict of data (empty by default)
+        '''
+        logging.log(level, ' '.join(
+            ['send:', json.dumps(data, indent=2, sort_keys=True)]))
 
     def do_json_print(data={}, file=sys.stdout):
         ''' Convert data into json and print it.
@@ -389,6 +426,8 @@ if __name__ == '__main__':
             :rtype: dict
         '''
         data = {'role': args.gh_role}
+        if args.debug:
+            do_json_log(data=data)
         if args.generate_json_only:
             do_json_print(data=data)
             return {}
@@ -408,6 +447,8 @@ if __name__ == '__main__':
             :rtype: dict
         '''
         data = create_create_metadata_specs(**vars(args))
+        if args.debug:
+            do_json_log(data=data)
         if args.generate_json_only:
             do_json_print(data=data)
             return {}
@@ -429,6 +470,8 @@ if __name__ == '__main__':
         org = args.gh_org[0]
         template_repo = args.template_repo[0]
 
+        if args.debug:
+            do_json_log(data=data)
         if args.generate_json_only:
             do_json_print(data=data)
             return {}
@@ -447,6 +490,8 @@ if __name__ == '__main__':
             :rtype: dict
         '''
         data = create_create_metadata_specs(**vars(args))
+        if args.debug:
+            do_json_log(data=data)
         if args.generate_json_only:
             do_json_print(data=data)
             return {}
@@ -475,6 +520,8 @@ if __name__ == '__main__':
             :rtype: dict
         '''
         data = create_create_metadata_specs(**vars(args))
+        if args.debug:
+            do_json_log(data=data)
         if args.generate_json_only:
             do_json_print(data=data)
             return {}
@@ -548,6 +595,8 @@ if __name__ == '__main__':
             owner = org
         repo = args.gh_repo[0]
         data = {'permission': args.gh_perm[0]}
+        if args.debug:
+            do_json_log(data=data)
         if args.generate_json_only:
             do_json_print(data=data)
             return {}
@@ -787,6 +836,7 @@ if __name__ == '__main__':
         if args.debug:
             logging.basicConfig(format='%(levelname)s: %(message)s',
                                 level=logging.DEBUG)
+            do_http_client_logging_setup()
     except AttributeError:
         parser.print_usage()
         sys.exit(1)
@@ -810,4 +860,6 @@ if __name__ == '__main__':
         err = e
     finally:
         if err:
+            if args.debug:
+                traceback.print_exception(type(err), err, err.__traceback__)
             sys.exit(1)
