@@ -558,7 +558,7 @@ if __name__ == '__main__':
             :param args: Namespace containing the parsed 
                             command line arguments.
         '''
-        print('do_rm_org_user')
+        rm_org_user(org=args.gh_org[0], user=args.user)
 
     def do_rm_permission(args):
         ''' Command-line exclusive remove permission. Executes
@@ -829,6 +829,7 @@ if __name__ == '__main__':
     remove_user_parser = user_subparsers.add_parser('remove',
                                                     help='Remove a user from an organization',
                                                     parents=[common_group, user_group])
+    remove_user_parser.set_defaults(func=do_rm_org_user)
 
     args = parser.parse_args()
 
