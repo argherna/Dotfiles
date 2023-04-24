@@ -1,5 +1,0 @@
-def func(int:x) -> int
-    return x + x
-
-if __name__ == '__main__':
-    print(func(2))
