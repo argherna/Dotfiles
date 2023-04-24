@@ -7,6 +7,10 @@
 ;;
 ;; CHANGELOG:
 ;;
+;; <2022-11-30> Some long overdue updates:
+;;              * Remove cl package
+;;              * Delete commented lisp
+;;
 ;; <2014-01-01> remove global-hl-line-mode
 ;;              allow tabs (remember to use M-x untabify)
 ;;
@@ -144,10 +148,6 @@
 ;; Control cursor blink.
 ;;
 (blink-cursor-mode 0)
-
-;; Make commons lisp functions available.
-;;
-(require 'cl)
 
 ;; -----------------------------------------------------------------------------
 ;;
@@ -359,8 +359,6 @@ there's a region, all lines that region covers will be duplicated."
       (set-frame-position frame x y)
       (set-frame-size frame w h)))
   (arrange-frame 120 40 5 5)
-;  (require 'darcula-theme)
-;  (set-frame-font "Menlo-12")
 )
 
 (andy/hardcore-ui)

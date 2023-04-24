@@ -1,0 +1,164 @@
+{
+	// Place your snippets for python here. Each snippet is defined under a snippet name and has a prefix, body and 
+	// description. The prefix is what is used to trigger the snippet and the body will be expanded and inserted. Possible variables are:
+	// $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders. Placeholders with the 
+	// same ids are connected.
+	// Example:
+	// "Print to console": {
+	// 	"prefix": "log",
+	// 	"body": [
+	// 		"console.log('$1');",
+	// 		"$2"
+	// 	],
+	// 	"description": "Log output to console"
+	// }
+	"function parameter": {
+		"prefix": "fparam",
+		"body": "${1:name}${2: :type}",
+		"description": "A function parameter with type hints"
+	},
+	"function": {
+		"prefix": "func",
+		"body": [
+			"def ${1:func_name}(${2:params}) ${3:-> return_type}:",
+			"   ''' ${4:TODO: docstring} '''",
+			"   ${5:pass}",
+		],
+		"description": "Function definition"
+	},
+	"class": {
+		"prefix": "cls",
+		"body": [
+			"class ${1:ClassName}:",
+			"    ''' ${2:TODO: docstring} '''",
+			"    def __init__(self${3:, params}) -> None:",
+			"        ${4:pass}",
+		],
+		"description": "Class definition"
+	},
+	"class function": {
+		"prefix": "cfunc",
+		"body": [
+			"def ${1:func_name}(self${2:, params}) ${3:-> return_type}:",
+			"    ''' ${4:TODO: docstring} '''",
+			"    ${5:pass}",
+		],
+		"description": "Class function"
+	},
+	"__call__": {
+		"prefix": "__call",
+		"body": [
+			"def __call__(self${1:, params}) ${2:-> return_type}:",
+			"    ${3:pass}"
+		],
+		"description": "Add __call__ to class.",
+	},
+	"__repr__": {
+		"prefix": "__repr",
+		"body": [
+			"def __repr__(self) -> str:",
+			"    return f'{self.__class__},({self.__dict__})'"
+		]
+	},
+	"__str__": {
+		"prefix": "__str",
+		"body": [
+			"def __str__(self) -> str:",
+			"    return f'{k}: {v}' for k, v in __self__.__dict__.items()"
+		]
+	},
+	"if name equals main": {
+		"prefix": "ifmain",
+		"body": [
+			"if __name__ == '__main__':",
+			"    ${1:pass}",
+		],
+		"description": "if __name__ == '__main__'",
+	},
+	"add argument parser": {
+		"prefix": "argprsr",
+		"body": [
+			"${1:arg_parser} = ArgumentParser(description=${2:'description here'},",
+			"formatter_class=${3:RawDescriptionHelpFormatter})"
+		],
+		"description": "Basic ArgumentParser"
+	},
+	"add boolean switch": {
+		"prefix": "+sw",
+		"body": [
+			"${1:arg_parser}.add_argument('${2:short}', '${3:long}',",
+			"action='store_true',",
+			"help='${4:TODO: help string}')"
+		],
+		"description": "Add a boolean switch"
+	},
+	"add infile argument": {
+		"prefix": "+infarg",
+		"body": [
+			"${1:arg_parser}.add_argument('${2:infile}', nargs='?', type=FileType('r'),",
+			"metavar='${3:IN_FILE}',",
+			"default=${4:sys.stdin},",
+			"help='${5:Input file name (default stdin)}')"
+		],
+		"description": "Add an infile arg with default sys.stdin"
+	},
+	"add outfile argument": {
+		"prefix": "+outfarg",
+		"body": [
+			"${1:arg_parser}.add_argument('${2:outfile}', nargs='?', type=FileType('w'),",
+			"metavar='${3:OUT_FILE}',",
+			"default=${4:sys.stdout},",
+			"help='${5:Output file name (default stdout)}')"
+		],
+		"description": "Add an outfile arg with default sys.stdout"
+	},
+	"add switch with argument": {
+		"prefix": "+swarg",
+		"body": [
+			"${1:arg_parser}.add_argument('-${2:short}', '--${3:long-name}', metavar='${4:METAVAR}',",
+			"help='${5:description}')"
+		]
+	},
+	"parse arguments": {
+		"prefix": "pargs",
+		"body": "${1:args} = ${2:arg_parser}.parse_args()",
+		"description": "Parse arguments (laziness)",
+	},
+	"if statement": {
+		"prefix": "if",
+		"body": [
+			"if ${1:cond}:",
+			"    ${2:pass}"
+		],
+		"description": "If statement (laziness)"
+	},
+	"elif statement": {
+		"prefix": "elif",
+		"body": [
+			"elif ${1:cond}:",
+			"    ${2:pass}"
+		],
+		"description": "elif statement (laziness)"
+	},
+	"else statement": {
+		"prefix": "else",
+		"body": [
+			"else:",
+			"    ${1:pass}"
+		],
+		"description": "else statement (laziness)"
+	},
+	"normal for loop": {
+		"prefix": "forin",
+		"body": [
+			"for ${1:item} in ${2:collection}:",
+			"    ${3:pass}"
+		],
+		"description": "For statement (laziness)"
+	},
+	"comprehension for": {
+		"prefix": "cfor",
+		"body": "for ${1:item} in ${2:collection}",
+		"description": "For statement used in a comprehension"
+	},
+}

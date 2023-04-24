@@ -1,0 +1,40 @@
+;;; -*- coding: utf-8 -*-
+
+;; ----- ido-last-directory-list -----
+(
+ ("/Users/agherna/.emacs.d/" . "site-lisp/")
+ ("/Users/agherna/Configurations/Dotfiles/" . ".emacs.d/")
+ ("/Users/agherna/Configurations/" . "Dotfiles/")
+ ("/Users/agherna/" . ".emacs.d/")
+)
+
+;; ----- ido-work-directory-list -----
+(
+ "/Users/agherna/.emacs.d/"
+ "/Users/agherna/Configurations/Dotfiles/.emacs.d/"
+)
+
+;; ----- ido-work-file-list -----
+(
+ "init.el"
+)
+
+;; ----- ido-dir-file-cache -----
+(
+ ("/Users/agherna/.emacs.d/" (25478 34025 499442 71000) "#init.el#" "backups/" "site-lisp/" "init.el" "auto-save-list/" "ido.last" "../" "./")
+
+ ("/Users/agherna/" (25479 27825 963959 613000) "Program.cs" "editor_templates.xml" "nohup.out" ".httpie/" ".zsh_sessions/" ".viminfo" ".bash_history" ".Box_StreemToSync" ".lesshsQ" ".gitconfig" ".aws/" ".inputrc" ".cache/" "tmp/" "quine.py" ".redhat/" "ComplexApplication_i18n/" ".python_history" "Downloads/" ".zcompdump-TECH-P10R95912-5.8.1" ".oh-my-zsh/" ".aspnet/" ".Xauthority" ".swiftpm/" ".bash_profile" ".m2/" ".vscode/" ".zcompdump-TECH-P10R95912-5.8" "build/" "Documents/" "groovy/" ".terraform.d/" ".npm/" "spotify.scpt" ".Trash/" "sitemap.xml" ".screenrc" "eclipse-java-google-style.xml" ".Box_EngineServer" "Dropbox/" ".gradle/" ".profile" "Applications/" ".dotnet/" "netids.txt" ".vimrc" "Movies/" ".ssh/" ".rustup/" ".dbeaver-drivers/" "Scripts/" "commons-nvp/" ".cisco/" "Secure/" "commons-dev.cer" ".idlerc/" ".zshenv" ".keystore" "package-lock.json" ".gitignore" "test.xlsx" ".bash_aliases" "hsqlprefs.dat" ".dropbox/" "Public/" "sqltool.rc" ".graphbuddy.vscode.conf" ".terragrunt/" ".lemminx/" ".sqlite_history" "Google Drive/" ".bash_sessions/" ".calendar/" "jdk-image/" ".cups/" ".cargo/" ".node_repl_history" ".emacs.d/" ".bash_profile.pysave" ".aws-login/" ".editorconfig" ".oracle_jre_usage/" "survey-notifier.p12" ".profile.agherna" ".lesshst" "OneDrive - University of Illinois - Urbana/" "netids.sorted.txt" "jttp" "default.profraw" "eclipse-workspace/" "Library/" "Archived - Box Sync/" "Desktop/" ".ipython/" ".p2/" "java/" ".osx.tmux.conf" ".zsh_history" "var/" ".nuget/" ".jmc/" "Postman/" "etc/" "ljds" "TECH-P10R95912.crt" ".sts4/" ".nvm/" ".Box_SyncToStreem" "algs4.jar" "jprocs_monitor.db" ".pylint.d/" "Pictures/" ".local/" "delete-me.txt" ".zcompdump-TECH-P10R95912-5.3" "deploy/" ".templateengine/" ".zshrc" "development/" ".bashrc" ".ApacheDirectoryStudio/" ".zcompdump-TECH-P10R95912-5.7.1" ".subversion/" "commons.cites.illinois.edu.cer" ".tooling/" ".wget-hsts" ".CFUserTextEncoding" "Stickies/" "add.py" "VirtualBox VMs/" ".tmux.conf" ".thumbnails/" "eclipse/" ".Box_UIServer" ".DS_Store" "go/" ".mavenrc" ".vim/" "eclipse.epf" ".anyconnect" ".jttp/" ".ubu.tmux.conf" ".docker/" "Cargo.toml" "java_pid4858.hprof.gz" ".git_commit_msg.txt" "Music/" "techsvc-remote/" ".config/" ".eclipse/" "Configurations/" ".wgetrc" "Renewal_Quote.pdf" ".python_history-27692.tmp" "../" "./")
+
+ ("/Users/agherna/Desktop/" (25479 23848 0 0) "New Hires alias" "Architectural Virtual Team alias" "Documents alias" "BP - AG Nov 2022.pdf" "Electronic Services Purchased by P-Card-1.pdf" "Software-Purchased-by-P-Card-Form.pdf" "Dropbox Documents" ".localized" ".DS_Store" "2022 Rokwire Search Committee - Candidates/" "Inbox Attachments alias" "Patient Portal - Billing Account Details.pdf" "../" "./")
+
+ ("/Users/agherna/.emacs.d/site-lisp/" (23218 48877 452034 816000) "org-load.el" "../" "./")
+
+ ("/Users/agherna/Configurations/Dotfiles/.emacs.d/" (25476 52675 266581 967000) "#init.el#" "backups/" "site-lisp/" ".#init.el" "init.el" "auto-save-list/" "ido.last" "../" "./")
+
+ ("/Users/agherna/Configurations/Dotfiles/" (24870 40323 688727 292000) "editor_templates.xml" ".gitconfig" ".inputrc" ".bash_profile" ".vscode/" ".git/" ".screenrc" "eclipse-java-google-style.xml" ".vimrc" ".ssh/" "Scripts/" ".gitignore" ".bash_aliases" ".emacs.d/" ".profile.agherna" "Library/" ".osx.tmux.conf" ".bashrc" ".tmux.conf" ".DS_Store" "eclipse.epf" ".ubu.tmux.conf" ".git_commit_msg.txt" "man/" "../" "./")
+
+ ("/Users/agherna/Configurations/" (24448 42235 312117 641000) "jttp_logging.properties" "krb5.conf" "mongo/" "logging_javadocserver.properties" "jttp_jvm_args" "content-types.properties" "postgres/" "jvm_args_javadocserver" "jaas_spnego.conf" "jttp_sysprops" "apacheds/" "jttp_logging.X.properties" "redis/" "jttp_spnego_sysprops" "eclipse-mosquitto/" "Dotfiles/" "develop/" ".DS_Store" "../" "./")
+)
+
+;; ----- ido-unc-hosts-cache -----
+t
