@@ -124,5 +124,9 @@
 	"No-arg lambda": {
 		"prefix": "nal",
 		"body": "() -> $0"
+	},
+	"System.err.printf": {
+		"prefix": "sepf",
+		"body": "System.err.printf(\"$1\", ${2:args});$0"
 	}
 }
