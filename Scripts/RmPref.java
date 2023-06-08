@@ -1,3 +1,14 @@
+/*bin/mkdir -p /tmp/.java/classes 2> /dev/null
+
+# Compile the program.
+#
+javac -d /tmp/.java/classes $0
+
+# Run the compiled program only if compilation succeeds.
+#
+[[ $? -eq 0 ]] && java -cp /tmp/.java/classes $(basename ${0%.*}) "$@"
+exit
+*/
 import static java.util.Objects.isNull;
 import static java.util.Objects.nonNull;
 import java.util.prefs.BackingStoreException;
