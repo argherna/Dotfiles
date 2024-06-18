@@ -1,5 +1,8 @@
 import java.io.PrintWriter;
 
+/**
+ * Prints a banner to be put into properties files.
+ */
 public class PropertyBanner implements Runnable {
 
     private static final Character DASH = '-';
@@ -18,6 +21,34 @@ public class PropertyBanner implements Runnable {
 
     private final String text;
 
+    /**
+     * The main.
+     * 
+     * <P>
+     * This program takes an argument of a quoted string to be used as the text in
+     * the banner. Typical usage is:
+     * 
+     * <PRE>{@code 
+     * java PropertyBanner.java "Text to center in the banner"
+     * }</PRE>
+     * 
+     * <P>
+     * Output will be written to {@link System#out} and will look like this:
+     * 
+     * <PRE>
+     * # ----------------------------------------------
+     * #
+     * #          Text to center in the banner
+     * #
+     * # ----------------------------------------------
+     * </PRE>
+     * 
+     * <P>
+     * The actual text will be 80 characters wide. The above is displayed for
+     * formatting purposes only.
+     * 
+     * @param args command line arguments.
+     */
     public static void main(String... args) {
         if (args.length < 1) {
             showUsageAndExit("No text set!", 2);
@@ -31,6 +62,13 @@ public class PropertyBanner implements Runnable {
         app.run();
     }
 
+    /**
+     * Show a error message, followed by a short usage message, and then exits with
+     * the given code.
+     * 
+     * @param message error message.
+     * @param code exit code.
+     */
     private static void showUsageAndExit(String message, int code) {
         var usage = String.format("java %s \"text\"", PropertyBanner.class.getName());
         System.err.println(message);
@@ -38,12 +76,20 @@ public class PropertyBanner implements Runnable {
         System.exit(code);
     }
 
+    /**
+     * Construct a new instance of PropertyBanner.
+     * 
+     * @param text text for the banner.
+     */
     public PropertyBanner(String text) {
         this.pw = DEFAULT_PRINTWRITER;
         this.text = text;
         this.width = DEFAULT_WIDTH;
     }
 
+    /**
+     * Runs the program.
+     */
     @Override
     public void run() {
         printBorder();
@@ -53,6 +99,9 @@ public class PropertyBanner implements Runnable {
         printBorder();
     }
 
+    /**
+     * Prints the banner border.
+     */
     private void printBorder() {
         var printed = 0;
         pw.print(LINE_COMMENT);
@@ -66,6 +115,9 @@ public class PropertyBanner implements Runnable {
         pw.flush();
     }
 
+    /**
+     * Prints the text centered on an 80-character line.
+     */
     private void printText() {
         var spaces = (width - text.length()) / 2;
         pw.print(LINE_COMMENT);
