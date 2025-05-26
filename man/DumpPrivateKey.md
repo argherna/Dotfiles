@@ -6,7 +6,7 @@
 ## SYNOPSIS
 
 ```bash
-    bash DumpPrivateKey.java [-keystore <keystore>] [-alias <alias>] 
+    java DumpPrivateKey.java [-keystore <keystore>] [-alias <alias>] 
        [-file <filename>] [-storepass <arg>] [-keypass <arg>]
        [-storetype <arg>]
        

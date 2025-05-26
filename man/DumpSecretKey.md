@@ -6,7 +6,7 @@
 ## SYNOPSIS
 
 ```bash
-    bash DumpSecretKey.java -keystore <keystore> -alias <alias> 
+    java DumpSecretKey.java -keystore <keystore> -alias <alias> 
       -storepass <arg> [-file <filename>] [-storetype <arg>]
       [-raw] [-help]
 ```
@@ -52,6 +52,13 @@ The options defined here are similar to `keytool` options to communicate intent.
     </ul>
   <dt><code>2</code>
   <dd>Either no options were set or the <code>-help</code> option was set. 
+</dl>
+
+## FILES
+
+<dl>
+  <dt><code>$HOME/.keystore</code>
+  <dd>Default keystore used if <code>-keystore</code> argument is not specified.
 </dl>
 
 ## SEE ALSO

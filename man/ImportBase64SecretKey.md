@@ -7,7 +7,7 @@
 ## SYNOPSIS
 
 ```bash
-    bash ImportBase64SecretKey.java -alias <alias> \
+    java ImportBase64SecretKey.java -alias <alias> \
       -keystore <keystore> -storepass <arg> \
       -file <filename> [-keypass <arg>] [-keyalg <arg>] \
       [-help]
