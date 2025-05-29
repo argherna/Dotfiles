@@ -6,8 +6,9 @@
 ## SYNOPSIS
 
 ```bash
-    java DumpSecretKey.java -keystore <keystore> -alias <alias> 
-      -storepass <arg> [-file <filename>] [-storetype <arg>]
+    java DumpSecretKey.java -alias <alias> [-keystore <keystore>]
+      [-storepass [:env|:file] <arg>] [-file <filename>] 
+      [-storetype <arg>] [-keypass [:env|:file] <arg>] 
       [-raw] [-help]
 ```
 
@@ -15,27 +16,29 @@
 
 Dumps a secret key from a Java keystore, which is not possible from `keytool`. Output is a base-64 encoded string to *System.out*. The `-raw` option will not base-64 encode the output. The `-file` option will save the output to the given filename.
 
+**NOTE**: using this tool will expose a secret key or password. It is strongly recommended to only use this under the supervision of an IT security specialist.
+
 ## OPTIONS
 
 The options defined here are similar to `keytool` options to communicate intent.
 
 <dl>
-  <dt><code>-alias &lt;alias&gt;</code>
-  <dd>alias name of the entry in the keystore to process.
+  <dt><code>-alias &lt;arg&gt;</code>
+  <dd>Alias name of the entry in the keystore to process.
   <dt><code>-file &lt;filename&gt;</code>
-  <dd>output file name.
+  <dd>Output file name (<code>System.out</code> if not set).
   <dt><code>-help</code>
-  <dd>shows a help message and exits.
-  <dt><code>-keypass &lt;arg&gt;</code>
-  <dd>key password
+  <dd>Display a help message and exit with status code 2.
+  <dt><code>-keypass [:env|:file] &lt;arg&gt;</code>
+  <dd>Key password. If <code>:env</code> modifier is specified, retrieve value of the specified environment variable. If <code>:file</code> modifier specified, read password from the specified file name. Otherwise, use the given argument as the password. If not set, use the same value as <code>-storepass</code>. If not the same value as <code>-storepass</code>, user will be prompted for a key password.
   <dt><code>-keystore &lt;keystore&gt;</code>
-  <dd>keystore name
+  <dd>Keystore file name (<code>$HOME/.keystore</code> if not set).
   <dt><code>-raw</code>
-  <dd>dumps the raw key value
-  <dt><code>-storepass &lt;arg&gt;</code>
-  <dd>keystore password
+  <dd>Bypass base64 encoding of key and dump it raw to the output.
+  <dt><code>-storepass [:env|:file] &lt;arg&gt;</code>
+  <dd>Keystore password. If <code>:env</code> modifier is specified, retrieve value of the specified environment variable. If <code>:file</code> modifier specified, read password from the specified file name. Otherwise, use the given argument as the password. If not set, user will be prompted for store password.
   <dt><code>-storetype &lt;arg&gt;</code>
-  <dd>keystore type
+  <dd>Keystore type (result of <code>KeyStore.getDefaultType()</code> if not set).
 </dl>
 
 ## EXIT STATUS
@@ -63,7 +66,9 @@ The options defined here are similar to `keytool` options to communicate intent.
 
 ## SEE ALSO
 
-`keytool`(1)
+* [`keytool`(1)](https://docs.oracle.com/en/java/javase/11/tools/keytool.html)
+* [Keytool - Managing Your Keystore](https://dev.java/learn/jvm/tool/security/keytool/)
+
 
 ## AUTHOR
 

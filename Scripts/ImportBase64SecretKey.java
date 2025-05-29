@@ -1,9 +1,11 @@
 import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.Console;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
@@ -186,14 +188,39 @@ class ImportBase64SecretKey implements Runnable {
    * Main function.
    * 
    * <P>
-   * Command-line arguments match those of the keytool to communicate intent. If
-   * the {@code -keystore} option isn't set, the default is to use
-   * {@code $HOME/.keystore}. If the {@code -keypass} isn't specified, the default
-   * is to use the value for {@code -storepass} whether specified on the command
-   * line or via prompt.
+   * Command-line arguments match those of the keytool to communicate intent.
    * 
-   * @param args arguments the same as keytool functions.
+   * <DL>
+   * <DT>{@code -alias <arg>}
+   * <DD>Alias name of the entry in the keystore to process.
+   * <DT>{@code -file <filename>}
+   * <DD>Input file name ({@link System#in} if not set).
+   * <DT>{@code -help}
+   * <DD>Display a help message and exit with status code {@code 2}.
+   * <DT>{@code -keyalg <alg>}
+   * <DD>Key algorithm to use ({@code AES} if not set).
+   * <DT>{@code -keypass [:env|:file] <arg>}
+   * <DD>Key password. If {@code :env} modifier is specified, retrieve value
+   * of the specified environment variable. If {@code :file} modifier specified,
+   * read password from the specified file name. Otherwise, use the given argument
+   * as the password. If not set, use the same value as {@code -storepass}. If not
+   * the same value as {@code -storepass}, user will be prompted for a key
+   * password.
+   * <DT>{@code -keystore <keystore>}
+   * <DD>Keystore file name ({@code $HOME/.keystore} if not set).
+   * <DT>{@code -storepass [:env|:file] <arg>}
+   * <DD>Keystore password. If {@code :env} modifier is specified, retrieve value
+   * of the specified environment variable. If {@code :file} modifier specified,
+   * read password from the specified file name. Otherwise, use the given argument
+   * as the password. If not set, user will be prompted for store password.
+   * <DT>{@code -storetype <arg>}
+   * <DD>Keystore type (result of {@link KeyStore#getDefaultType()} if not set).
+   * </DL>
    * 
+   * @param args arguments as previously described.
+   * 
+   * @see <A href="https://dev.java/learn/jvm/tool/security/keytool/">Keytool -
+   *      Managing Your Keystore</A>
    * @see <A href=
    *      "https://docs.oracle.com/en/java/javase/11/tools/keytool.html">keytool
    *      reference</A>
@@ -223,13 +250,21 @@ class ImportBase64SecretKey implements Runnable {
           app.setKeyalg(args[++argIdx].toUpperCase());
           break;
         case "-keypass":
-          app.setKeypass(args[++argIdx].toCharArray());
+          app.setKeypass(readPassword(args, ++argIdx));
+          // Increment argIdx if value of the current argument is ":env" or ":file".
+          if (args[argIdx].startsWith(":")) {
+            argIdx++;
+          }
           break;
         case "-keystore":
           app.setKeystoreName(args[++argIdx]);
           break;
         case "-storepass":
-          app.setStorepass(args[++argIdx].toCharArray());
+          app.setStorepass(readPassword(args, ++argIdx));
+          // Increment argIdx if value of the current argument is ":env" or ":file".
+          if (args[argIdx].startsWith(":")) {
+            argIdx++;
+          }
           break;
         case "-storetype":
           app.setStoretype(args[++argIdx].toUpperCase());
@@ -243,6 +278,43 @@ class ImportBase64SecretKey implements Runnable {
     }
 
     app.run();
+  }
+
+  /**
+   * Attempts to read a password. This method will first read the password from
+   * the {@code args} array at {@code idx}. If the value is {@code :env}, then the
+   * password is retrieved from the environment from the named value at
+   * {@code args[idx + 1]}. If the value is {@code :file}, then the password will be
+   * read in from the file named at {@code args[idx + 1]}. Otherwise, the argument
+   * given is the password.
+   * 
+   * @param args command line arguments array.
+   * @param idx  index of where to start looking in {@code args}.
+   * @return password as a char array.
+   */
+  private static char[] readPassword(String[] args, int idx) {
+    var arg = args[idx];
+    if (arg.equals(":env")) {
+      return System.getenv(args[idx + 1]).toCharArray();
+    } else if (arg.equals(":file")) {
+      return readRawPasswordFromFile(new File(args[idx + 1]));
+    } else {
+      return arg.toCharArray();
+    }
+  }
+
+  /**
+   * 
+   * @param file the File to read the raw password from.
+   * @return contents of the file as a char array.
+   */
+  private static char[] readRawPasswordFromFile(File file) {
+    try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+      var pword = br.readLine();
+      return pword.toCharArray();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
@@ -268,10 +340,12 @@ class ImportBase64SecretKey implements Runnable {
     System.err.println(" -alias <alias>        alias name of the entry to process");
     System.err.println(" -file <filename>      input file name with a single base64-encoded string");
     System.err.println(" -help                 show this message and exit");
-    System.err.println(" -keyalg <arg>         key algorithm name");
-    System.err.println(" -keypass <arg>        key password");
+    System.err.println(" -keyalg <alg>         key algorithm name");
+    System.err.println(" -keypass [:env|:file] <arg>");
+    System.err.println("                       key password");
     System.err.println(" -keystore <keystore>  keystore name");
-    System.err.println(" -storepass <arg>      keystore password");
+    System.err.println(" -storepass [:env|:file] <arg>");
+    System.err.println("                       keystore password");
     System.err.println(" -storetype <arg>      keystore type");
   }
 }

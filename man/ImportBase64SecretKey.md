@@ -8,8 +8,8 @@
 
 ```bash
     java ImportBase64SecretKey.java -alias <alias> \
-      -keystore <keystore> -storepass <arg> \
-      -file <filename> [-keypass <arg>] [-keyalg <arg>] \
+      [-keystore <keystore>] [-storepass [:env|:file] <arg>] \
+      [-file <filename>] [-keypass [:env|:file] <arg>] [-keyalg <arg>] \
       [-help]
 ```
 
@@ -23,21 +23,21 @@ The options defined here are similar to `keytool` options to communicate intent.
 
 <dl>
   <dt><code>-alias &lt;alias&gt;</code>
-  <dd>alias name of the entry to process
+  <dd>Alias name of the entry in the keystore to process.
   <dt><code>-filename &lt;filename&gt;</code>
-  <dd>input file name with a single base64-encoded string
+  <dd>Input file name with a single base64-encoded string (<code>System.in</code> if not set).
   <dt><code>-help</code>
-  <dd>shows a help message and exits
+  <dd>Display a help message and exit with status code <code>2</code>.
   <dt><code>-keyalg &lt;arg&gt;</code>
-  <dd>key algorithm name (default is <em>AES</em>)
-  <dt><code>-keypass &lt;arg&gt;</code>
-  <dd>key password (default is value of <code>-storepass</code>)
+  <dd>Key algorithm to use (<code>AES</code> if not set).
+  <dt><code>-keypass [:env|:file] &lt;arg&gt;</code>
+  <dd>Key password. If <code>:env</code> modifier is specified, retrieve value of the specified environment variable. If <code>:file</code> modifier specified, read password from the specified file name. Otherwise, use the given argument as the password. If not set, use the same value as <code>-storepass</code>. If not the same value as <code>-storepass</code>, user will be prompted for a key password.
   <dt><code>-keystore &lt;keystore&gt;</code>
-  <dd>keystore name
-  <dt><code>-storepass &lt;arg&gt;</code>
-  <dd>keystore password
+  <dd>Keystore file name (<code>$HOME/.keystore</code> if not set).
+  <dt><code>-storepass [:env|:file] &lt;arg&gt;</code>
+  <dd>Keystore password. If <code>:env</code> modifier is specified, retrieve value of the specified environment variable. If <code>:file</code> modifier specified, read password from the specified file name. Otherwise, use the given argument as the password. If not set, user will be prompted for store password.
   <dt><code>-storetype &lt;arg&gt;</code>
-  <dd>keystore type (default is <em>jceks</em>)
+  <dd>Keystore type (result of <code>KeyStore.getDefaultType()</code> if not set).
 </dl>
 
 ## EXIT STATUS
@@ -53,12 +53,13 @@ The options defined here are similar to `keytool` options to communicate intent.
       <li>An exception was thrown/raised.
     </ul>
   <dt><code>2</code>
-  <dd>Either no options were set or the <code>-h</code> option was set. 
+  <dd>Either no options were set or the <code>-help</code> option was set. 
 </dl>
 
 ## SEE ALSO
 
-`keytool`(1)
+* [`keytool`(1)](https://docs.oracle.com/en/java/javase/11/tools/keytool.html)
+* [Keytool - Managing Your Keystore](https://dev.java/learn/jvm/tool/security/keytool/)
 
 ## AUTHOR
 

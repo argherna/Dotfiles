@@ -7,32 +7,34 @@
 
 ```bash
     java DumpPrivateKey.java [-keystore <keystore>] [-alias <alias>] 
-       [-file <filename>] [-storepass <arg>] [-keypass <arg>]
-       [-storetype <arg>]
+       [-file <filename>] [-storepass [:env|:file] <arg>] 
+       [-keypass [:env|:file] <arg>] [-storetype <arg>]
        
 ```
 
 ## DESCRIPTION
 
-Dumps the private key from a Java keystore. This tool has very obvious security implications, but I sometimes find it necessary to use it during development for diagnostic purposes. Please use good judgment when using this tool for yourself.
+Dumps the private key from a Java keystore, which is not possible from `keytool`. The private key is output in RFC 1421 form. This tool has very obvious security implications, but I sometimes find it necessary to use it during development for diagnostic purposes. Please use good judgment when using this tool for yourself.
 
 ## OPTIONS
 
 The options defined here are similar to `keytool` options to communicate intent.
 
 <dl>
-<dt><code>-alias &lt;alias&gt;</code>
-<dd>alias name of the entry to process (default is <em>mykey</em>).
-<dt><code>-file &lt;filename&gt;</code>
-<dd>output file name (default is to print to <em>System.out</em>).
-<dt><code>-keypass &lt;arg&gt;</code>
-<dd>key password (default is the value of <code>-storepass</code>).
-<dt><code>-keystore &lt;keystore&gt;</code>
-<dd>keystore name (default is <em>$HOME/.keystore</em>).
-<dt><code>-storepass &lt;arg&gt;</code>
-<dd>keystore password.
-<dt><code>-storetype &lt;arg&gt;</code>
-<dd>keystore type (default is <em>jceks</em>).
+  <dt><code>-alias &lt;alias&gt;</code>
+  <dd>Alias name of the entry in the keystore to process (default is <code>mykey</code>).
+  <dt><code>-file &lt;filename&gt;</code>
+  <dd>Output file name (<code>System.out</code> if not set).
+  <dt><code>-help</code>
+  <dd>Display a help message and exit with status code 2.
+  <dt><code>-keypass [:env|:file] &lt;arg&gt;</code>
+  <dd>Key password. If <code>:env</code> modifier is specified, retrieve value of the specified environment variable. If <code>:file</code> modifier specified, read password from the specified file name. Otherwise, use the given argument as the password. If not set, use the same value as <code>-storepass</code>. If not the same value as <code>-storepass</code>, user will be prompted for a key password.
+  <dt><code>-keystore &lt;keystore&gt;</code>
+  <dd>Keystore file name (<code>$HOME/.keystore</code> if not set).
+  <dt><code>-storepass [:env|:file] &lt;arg&gt;</code>
+  <dd>Keystore password. If <code>:env</code> modifier is specified, retrieve value of the specified environment variable. If <code>:file</code> modifier specified, read password from the specified file name. Otherwise, use the given argument as the password. If not set, user will be prompted for store password.
+  <dt><code>-storetype &lt;arg&gt;</code>
+  <dd>Keystore type (result of <code>KeyStore.getDefaultType()</code> if not set).
 </dl>
 
 ## EXIT STATUS
@@ -59,7 +61,8 @@ The options defined here are similar to `keytool` options to communicate intent.
 
 ## SEE ALSO
 
-* `keytool`(1)
+* [`keytool`(1)](https://docs.oracle.com/en/java/javase/11/tools/keytool.html)
+* [Keytool - Managing Your Keystore](https://dev.java/learn/jvm/tool/security/keytool/)
 * [RFC 1421 Certificate Encoding format](https://docs.oracle.com/javase/7/docs/technotes/tools/solaris/keytool.html#EncodeCertificate)
 
 ## AUTHOR

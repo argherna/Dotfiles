@@ -1,21 +1,24 @@
+import java.io.BufferedReader;
 import java.io.Console;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.PrivateKey;
+import java.security.UnrecoverableKeyException;
 import java.util.Base64;
 import java.util.Objects;
 
 /**
- * Dumps the private key from a keystore to {@linkplain System#out System.out}.
- *
+ * Dumps the private key from a keystore to output.
  *
  * <P>
- * Keystores must be created as follows to work with this tool:
+ * A keystore has to be created in order to use this tool. An example command
+ * for creating a keystore is as follows:
  *
  * <PRE>
  * {@code keytool -genkeypair \
@@ -82,11 +85,23 @@ class DumpPrivateKey implements Runnable {
       keystore = KeyStore.getInstance(storetype);
       keystore.load(keystorein, storepass);
 
-      var protection = new KeyStore.PasswordProtection(keypass);
+      KeyStore.PasswordProtection protection = null;
+      try {
 
-      // The privateKeyEntry could be null indicating it wasn't found in the KeyStore
-      // so remember to check it after this method is finished!
-      privateKeyEntry = (KeyStore.PrivateKeyEntry) keystore.getEntry(alias, protection);
+        protection = new KeyStore.PasswordProtection(keypass);
+
+        // The privateKeyEntry could be null indicating it wasn't found in the KeyStore
+        // so remember to check it after this method is finished!
+        privateKeyEntry = (KeyStore.PrivateKeyEntry) keystore.getEntry(alias, protection);
+
+      } catch (UnrecoverableKeyException e) {
+
+        // Maybe had the wrong key password? Try again.
+        keypass = enterPassword("key");
+        protection = new KeyStore.PasswordProtection(keypass);
+        privateKeyEntry = (KeyStore.PrivateKeyEntry) keystore.getEntry(alias, protection);
+
+      }
 
     } catch (IOException | GeneralSecurityException e) {
       throw new RuntimeException(e);
@@ -157,10 +172,29 @@ class DumpPrivateKey implements Runnable {
   }
 
   /**
+   * Returns the {@link KeyStore.PrivateKeyEntry} form the {@link KeyStore} for
+   * further processing.
+   * 
+   * <P>
+   * <STRONG>NOTE:</STRONG> this method should only be called
+   * <STRONG>AFTER</STRONG> the {@link #run()} method has been called. This method
+   * may return a {@code null} value indicating the private key with the given
+   * alias wasn't found in the keystore.
+   * 
    * @return the privateKeyEntry.
    */
   KeyStore.PrivateKeyEntry getPrivateKeyEntry() {
     return privateKeyEntry;
+  }
+
+  /**
+   * Checks the given String if it is {@code null} or empty.
+   * 
+   * @param value the String.
+   * @return {@code true} if the String is {@code null} or empty.
+   */
+  private boolean charArrayNullOrEmpty(char[] value) {
+    return (value == null || (value != null && value.length == 0));
   }
 
   /**
@@ -180,27 +214,40 @@ class DumpPrivateKey implements Runnable {
   }
 
   /**
-   * Checks the given String if it is {@code null} or empty.
-   * 
-   * @param value the String.
-   * @return {@code true} if the String is {@code null} or empty.
-   */
-  private boolean charArrayNullOrEmpty(char[] value) {
-    return (value == null || (value != null && value.length == 0));
-  }
-
-  /**
    * The main entry point.
    * 
    * <P>
-   * Command-line arguments match those of the keytool to communicate intent. If
-   * the {@code -keystore} option isn't set, the default is to use
-   * {@code $HOME/.keystore}. If the {@code -keypass} isn't specified, the default
-   * is to use the value for {@code -storepass} whether specified on the command
-   * line or via prompt.
+   * Command-line arguments match those of the keytool to communicate intent.
    * 
-   * @param args arguments the same as keytool functions.
+   * <DL>
+   * <DT>{@code -alias <arg>}
+   * <DD>Alias name of the entry in the keystore to process.
+   * <DT>{@code -file <filename>}
+   * <DD>Output file name ({@link System#out} if not set).
+   * <DT>{@code -help}
+   * <DD>Display a help message and exit with status code {@code 2}.
+   * <DT>{@code -keypass [:env|:file] <arg>}
+   * <DD>Key password. If {@code :env} modifier is specified, retrieve value
+   * of the specified environment variable. If {@code :file} modifier specified,
+   * read password from the specified file name. Otherwise, use the given argument
+   * as the password. If not set, use the same value as {@code -storepass}. If not
+   * the same value as {@code -storepass}, user will be prompted for a key
+   * password.
+   * <DT>{@code -keystore <keystore>}
+   * <DD>Keystore file name ({@code $HOME/.keystore} if not set).
+   * <DT>{@code -storepass [:env|:file] <arg>}
+   * <DD>Keystore password. If {@code :env} modifier is specified, retrieve value
+   * of the specified environment variable. If {@code :file} modifier specified,
+   * read password from the specified file name. Otherwise, use the given argument
+   * as the password. If not set, user will be prompted for store password.
+   * <DT>{@code -storetype <arg>}
+   * <DD>Keystore type (result of {@link KeyStore#getDefaultType()} if not set).
+   * </DL>
    * 
+   * @param args arguments as previously described.
+   * 
+   * @see <A href="https://dev.java/learn/jvm/tool/security/keytool/">Keytool -
+   *      Managing Your Keystore</A>
    * @see <A href=
    *      "https://docs.oracle.com/en/java/javase/11/tools/keytool.html">keytool
    *      reference</A>
@@ -225,13 +272,21 @@ class DumpPrivateKey implements Runnable {
           showUsageAndExit(2);
           break;
         case "-keypass":
-          app.setKeypass(args[++argIdx].toCharArray());
+          app.setKeypass(readPassword(args, ++argIdx));
+          // Increment argIdx if value of the current argument is ":env" or ":file".
+          if (args[argIdx].startsWith(":")) {
+            argIdx++;
+          }
           break;
         case "-keystore":
           app.setKeystoreName(args[++argIdx]);
           break;
         case "-storepass":
-          app.setStorepass(args[++argIdx].toCharArray());
+          app.setStorepass(readPassword(args, ++argIdx));
+          // Increment argIdx if value of the current argument is ":env" or ":file".
+          if (args[argIdx].startsWith(":")) {
+            argIdx++;
+          }
           break;
         case "-storetype":
           app.setStoretype(args[++argIdx]);
@@ -262,7 +317,7 @@ class DumpPrivateKey implements Runnable {
         System.exit(1);
       }
 
-      writeAsRFC(out, app.getKeyStore(), app.getKeystoreFile(), pke.getPrivateKey());
+      printAsRFC(out, app.getKeyStore(), app.getKeystoreFile(), pke.getPrivateKey());
 
     } catch (Exception e) {
       System.err.printf("Failure! %s%n", e.getMessage());
@@ -279,27 +334,72 @@ class DumpPrivateKey implements Runnable {
   }
 
   /**
-   * Writes the private key to the given PrintStream in RFC format.
+   * Attempts to read a password. This method will first read the password from
+   * the {@code args} array at {@code idx}. If the value is {@code :env}, then the
+   * password is retrieved from the environment from the named value at
+   * {@code args[idx + 1]}. If the value is {@code :file}, then the password will
+   * be
+   * read in from the file named at {@code args[idx + 1]}. Otherwise, the argument
+   * given is the password.
+   * 
+   * @param args command line arguments array.
+   * @param idx  index of where to start looking in {@code args}.
+   * @return password as a char array.
+   */
+  private static char[] readPassword(String[] args, int idx) {
+    var arg = args[idx];
+    if (arg.equals(":env")) {
+      return System.getenv(args[idx + 1]).toCharArray();
+    } else if (arg.equals(":file")) {
+      return readRawPasswordFromFile(new File(args[idx + 1]));
+    } else {
+      return arg.toCharArray();
+    }
+  }
+
+  /**
+   * 
+   * @param file the File to read the raw password from.
+   * @return contents of the file as a char array.
+   */
+  private static char[] readRawPasswordFromFile(File file) {
+    try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+      var pword = br.readLine();
+      return pword.toCharArray();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  /**
+   * Prints the private key to the given PrintStream in RFC 1421 format.
    * 
    * <P>
    * The format for the private key is as follows:
    *
    * <PRE>
-   * {@code -----BEGIN PRIVATE KEY-----
-   * Key-Format: XXXXXX"
+   * {@code -----BEGIN <algorithm> PRIVATE KEY-----
+   * Key-Format: XXXXXX
    * Keystore-File: <keystore filename>
    * Keystore-Type: ZZZZZZ
    * 
    * MII ...
-   * -----END PRIVATE KEY----- }
+   * -----END <algorithm> PRIVATE KEY----- }
    * </PRE>
    * 
    * @param out          PrintStream to write output to.
    * @param ks           the KeyStore.
    * @param keystoreFile the KeyStore File.
    * @param pk           the PrivateKey.
+   * 
+   * @see <A href="https://www.rfc-editor.org/rfc/rfc1421">Privacy Enhancement for
+   *      Internet Electronic Mail:
+   *      Part I: Message Encryption and Authentication Procedures</A>
+   * @see <A href=
+   *      "https://docs.oracle.com/javase/7/docs/technotes/tools/solaris/keytool.html#EncodeCertificate">RFC
+   *      1421 Certificate Encoding format</A>
    */
-  private static void writeAsRFC(PrintStream out, KeyStore ks, File keystoreFile, PrivateKey pk) {
+  private static void printAsRFC(PrintStream out, KeyStore ks, File keystoreFile, PrivateKey pk) {
 
     Base64.Encoder encoder = Base64.getEncoder();
     String b64 = encoder.encodeToString(pk.getEncoded());
@@ -320,6 +420,7 @@ class DumpPrivateKey implements Runnable {
       index = index + linelength;
     }
     out.printf("-----END %s PRIVATE KEY-----%n", pk.getAlgorithm());
+    out.flush();
   }
 
   /**
@@ -344,11 +445,13 @@ class DumpPrivateKey implements Runnable {
     System.err.println("Options:");
     System.err.println();
     System.err.println(" -alias <alias>        alias name of the entry to process");
-    System.err.println(" -file <filename>      output file name");
+    System.err.println(" -file <filename>      output file name (default is write to stdout)");
     System.err.println(" -help                 show this message and exit");
-    System.err.println(" -keypass <arg>        key password (optional, defaults to storepass)");
+    System.err.println(" -keypass [:env|:file] <arg>");
+    System.err.println("                       key password");
     System.err.println(" -keystore <keystore>  keystore name");
-    System.err.println(" -storepass <arg>      keystore password");
+    System.err.println(" -storepass [:env|:file] <arg>");
+    System.err.println("                       keystore password");
     System.err.println(" -storetype <arg>      keystore type");
   }
 
