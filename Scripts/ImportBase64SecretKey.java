@@ -73,6 +73,11 @@ class ImportBase64SecretKey implements Runnable {
         result = bis.read();
       }
       var keystring = buf.toString();
+      buf.close();
+      bis.close();
+      if (instream instanceof FileInputStream) {
+        instream.close();
+      }
 
       // Decode Base64 into a secret key.
       var bytes = Base64.getDecoder().decode(keystring);
@@ -151,11 +156,11 @@ class ImportBase64SecretKey implements Runnable {
   /**
    * Checks the given String if it is {@code null} or empty.
    * 
-   * @param value the String.
+   * @param s the String.
    * @return {@code true} if the String is {@code null} or empty.
    */
-  private boolean isNullOrEmpty(String value) {
-    return (value == null || (value != null && value.isEmpty()));
+  private boolean isNullOrEmpty(String s) {
+    return (Objects.isNull(s) || (Objects.nonNull(s) && s.isEmpty()));
   }
 
   /**
@@ -165,7 +170,7 @@ class ImportBase64SecretKey implements Runnable {
    * @return {@code true} if the array is {@code null} or empty.
    */
   private boolean charArrayNullOrEmpty(char[] ary) {
-    return (ary == null || (ary != null && ary.length == 0));
+    return (Objects.isNull(ary) || (Objects.nonNull(ary) && ary.length == 0));
   }
 
   /**
@@ -284,7 +289,8 @@ class ImportBase64SecretKey implements Runnable {
    * Attempts to read a password. This method will first read the password from
    * the {@code args} array at {@code idx}. If the value is {@code :env}, then the
    * password is retrieved from the environment from the named value at
-   * {@code args[idx + 1]}. If the value is {@code :file}, then the password will be
+   * {@code args[idx + 1]}. If the value is {@code :file}, then the password will
+   * be
    * read in from the file named at {@code args[idx + 1]}. Otherwise, the argument
    * given is the password.
    * 

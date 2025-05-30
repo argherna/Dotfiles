@@ -188,13 +188,13 @@ class DumpPrivateKey implements Runnable {
   }
 
   /**
-   * Checks the given String if it is {@code null} or empty.
+   * Checks the given char array if it is {@code null} or empty.
    * 
-   * @param value the String.
-   * @return {@code true} if the String is {@code null} or empty.
+   * @param ary the char array.
+   * @return {@code true} if the array is {@code null} or empty.
    */
-  private boolean charArrayNullOrEmpty(char[] value) {
-    return (value == null || (value != null && value.length == 0));
+  private boolean charArrayNullOrEmpty(char[] ary) {
+    return (Objects.isNull(ary) || (Objects.nonNull(ary) && ary.length == 0));
   }
 
   /**
@@ -323,7 +323,7 @@ class DumpPrivateKey implements Runnable {
       System.err.printf("Failure! %s%n", e.getMessage());
       System.exit(1);
     } finally {
-      if (outstream != null) {
+      if (Objects.nonNull(outstream)) {
         try {
           outstream.close();
         } catch (IOException e) {
@@ -458,10 +458,10 @@ class DumpPrivateKey implements Runnable {
   /**
    * Checks the given String if it is {@code null} or empty.
    * 
-   * @param value the String.
+   * @param s the String.
    * @return {@code true} if the String is {@code null} or empty.
    */
-  private static boolean isNullOrEmpty(String value) {
-    return (value == null || (value != null && value.isEmpty()));
+  private static boolean isNullOrEmpty(String s) {
+    return (Objects.isNull(s) || (Objects.nonNull(s) && s.isEmpty()));
   }
 }
