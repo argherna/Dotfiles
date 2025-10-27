@@ -222,6 +222,16 @@ class ImportBase64SecretKey implements Runnable {
    * <DD>Keystore type (result of {@link KeyStore#getDefaultType()} if not set).
    * </DL>
    * 
+   * <P>
+   * <STRONG>NOTE:</STRONG> if you're on MacOS and you're using base64 to encode
+   * input into this program, you must run it like this to ensure no newline
+   * characters are appended to the encoded data:
+   * 
+   * <PRE>{@code
+   * echo -n 'yourdata' | base64 | tr -d \\n \
+   *   | java ImportBase64SecretKey.java [options]
+   * }</PRE>
+   * 
    * @param args arguments as previously described.
    * 
    * @see <A href="https://dev.java/learn/jvm/tool/security/keytool/">Keytool -
@@ -275,7 +285,7 @@ class ImportBase64SecretKey implements Runnable {
           app.setStoretype(args[++argIdx].toUpperCase());
           break;
         default:
-          System.err.printf("Unknown option: %s%n");
+          System.err.printf("Unknown option: %s%n", arg);
           showUsageAndExit(1);
           break;
       }
