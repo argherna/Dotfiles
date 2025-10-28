@@ -266,20 +266,16 @@ class ImportBase64SecretKey implements Runnable {
           break;
         case "-keypass":
           app.setKeypass(readPassword(args, ++argIdx));
-          // Increment argIdx if value of the current argument is ":env" or ":file".
-          if (args[argIdx].startsWith(":")) {
-            argIdx++;
-          }
           break;
         case "-keystore":
+        case "-keypass:env":
+        case "-keypass:file":
           app.setKeystoreName(args[++argIdx]);
           break;
         case "-storepass":
+        case "-storepass:env":
+        case "-storepass:file":
           app.setStorepass(readPassword(args, ++argIdx));
-          // Increment argIdx if value of the current argument is ":env" or ":file".
-          if (args[argIdx].startsWith(":")) {
-            argIdx++;
-          }
           break;
         case "-storetype":
           app.setStoretype(args[++argIdx].toUpperCase());
@@ -296,26 +292,23 @@ class ImportBase64SecretKey implements Runnable {
   }
 
   /**
-   * Attempts to read a password. This method will first read the password from
-   * the {@code args} array at {@code idx}. If the value is {@code :env}, then the
-   * password is retrieved from the environment from the named value at
-   * {@code args[idx + 1]}. If the value is {@code :file}, then the password will
-   * be
-   * read in from the file named at {@code args[idx + 1]}. Otherwise, the argument
-   * given is the password.
+   * Attempts to read a password. If the given password option ends with
+   * {@code :env}, then the password is retrieved from the environment from the
+   * named value at {@code passwdData}. If the password option ends
+   * with{@code :file}, then the password will be read in from the file named at
+   * {@code passwdData}. Otherwise, the argument given is the password.
    * 
-   * @param args command line arguments array.
-   * @param idx  index of where to start looking in {@code args}.
+   * @param passwdOpt  password option set on command line.
+   * @param passwdData command line arguments array.
    * @return password as a char array.
    */
-  private static char[] readPassword(String[] args, int idx) {
-    var arg = args[idx];
-    if (arg.equals(":env")) {
-      return System.getenv(args[idx + 1]).toCharArray();
-    } else if (arg.equals(":file")) {
-      return readRawPasswordFromFile(new File(args[idx + 1]));
+  private static char[] readPassword(String passwdOpt, String passwdData) {
+    if (passwdOpt.endsWith(":env")) {
+      return System.getenv(passwdData).toCharArray();
+    } else if (passwdOpt.endsWith(":file")) {
+      return readRawPasswordFromFile(new File(passwdData));
     } else {
-      return arg.toCharArray();
+      return passwdData.toCharArray();
     }
   }
 
@@ -357,10 +350,10 @@ class ImportBase64SecretKey implements Runnable {
     System.err.println(" -file <filename>      input file name with a single base64-encoded string");
     System.err.println(" -help                 show this message and exit");
     System.err.println(" -keyalg <alg>         key algorithm name");
-    System.err.println(" -keypass [:env|:file] <arg>");
+    System.err.println(" -keypass[:env|:file] <arg>");
     System.err.println("                       key password");
     System.err.println(" -keystore <keystore>  keystore name");
-    System.err.println(" -storepass [:env|:file] <arg>");
+    System.err.println(" -storepass[:env|:file] <arg>");
     System.err.println("                       keystore password");
     System.err.println(" -storetype <arg>      keystore type");
   }
