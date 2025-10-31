@@ -263,32 +263,34 @@ class DumpPrivateKey implements Runnable {
       var arg = args[argIdx];
       switch (arg) {
         case "-alias":
+          checkOptionHasArgument(arg, args, argIdx);
           app.setAlias(args[++argIdx]);
           break;
         case "-file":
+          checkOptionHasArgument(arg, args, argIdx);
           outfilename = args[++argIdx];
           break;
         case "-help":
           showUsageAndExit(2);
           break;
         case "-keypass":
-          app.setKeypass(readPassword(args, ++argIdx));
-          // Increment argIdx if value of the current argument is ":env" or ":file".
-          if (args[argIdx].startsWith(":")) {
-            argIdx++;
-          }
+        case "-keypass:env":
+        case "-keypass:file":
+          checkOptionHasArgument(arg, args, argIdx);
+          app.setKeypass(readPassword(arg, args[++argIdx]));
           break;
         case "-keystore":
+          checkOptionHasArgument(arg, args, argIdx);
           app.setKeystoreName(args[++argIdx]);
           break;
         case "-storepass":
-          app.setStorepass(readPassword(args, ++argIdx));
-          // Increment argIdx if value of the current argument is ":env" or ":file".
-          if (args[argIdx].startsWith(":")) {
-            argIdx++;
-          }
+        case "-storepass:env":
+        case "-storepass:file":
+          checkOptionHasArgument(arg, args, argIdx);
+          app.setStorepass(readPassword(arg, args[++argIdx]));
           break;
         case "-storetype":
+          checkOptionHasArgument(arg, args, argIdx);
           app.setStoretype(args[++argIdx]);
           break;
         default:
@@ -334,26 +336,23 @@ class DumpPrivateKey implements Runnable {
   }
 
   /**
-   * Attempts to read a password. This method will first read the password from
-   * the {@code args} array at {@code idx}. If the value is {@code :env}, then the
-   * password is retrieved from the environment from the named value at
-   * {@code args[idx + 1]}. If the value is {@code :file}, then the password will
-   * be
-   * read in from the file named at {@code args[idx + 1]}. Otherwise, the argument
-   * given is the password.
+   * Attempts to read a password. If the given password option ends with
+   * {@code :env}, then the password is retrieved from the environment from the
+   * named value at {@code passwdData}. If the password option ends
+   * with{@code :file}, then the password will be read in from the file named at
+   * {@code passwdData}. Otherwise, the argument given is the password.
    * 
-   * @param args command line arguments array.
-   * @param idx  index of where to start looking in {@code args}.
+   * @param passwdOpt  password option set on command line.
+   * @param passwdData command line arguments array.
    * @return password as a char array.
    */
-  private static char[] readPassword(String[] args, int idx) {
-    var arg = args[idx];
-    if (arg.equals(":env")) {
-      return System.getenv(args[idx + 1]).toCharArray();
-    } else if (arg.equals(":file")) {
-      return readRawPasswordFromFile(new File(args[idx + 1]));
+  private static char[] readPassword(String passwdOpt, String passwdData) {
+    if (passwdOpt.endsWith(":env")) {
+      return System.getenv(passwdData).toCharArray();
+    } else if (passwdOpt.endsWith(":file")) {
+      return readRawPasswordFromFile(new File(passwdData));
     } else {
-      return arg.toCharArray();
+      return passwdData.toCharArray();
     }
   }
 
@@ -424,6 +423,31 @@ class DumpPrivateKey implements Runnable {
   }
 
   /**
+   * If the option does not have an argument, show an error message, show usage,
+   * and exit with code 1.
+   * 
+   * @param arg    argument name.
+   * @param args   argument array.
+   * @param argIdx current index of argument array.
+   */
+  private static void checkOptionHasArgument(String arg, String[] args, int argIdx) {
+    if (args.length < argIdx + 1) {
+      showOptionArgumentError(arg);
+      showUsageAndExit(1);
+    }
+  }
+
+  /**
+   * Prints an error message stating the given option needs an argument to
+   * {@link System#err}.
+   * 
+   * @param opt option that needs an argument.
+   */
+  private static void showOptionArgumentError(String opt) {
+    System.err.printf("Command option %s needs an argument.", opt);
+  }
+
+  /**
    * Prints a usage message to {@link System#err} and exits with the given code.
    * 
    * @param code the exit code.
@@ -447,10 +471,10 @@ class DumpPrivateKey implements Runnable {
     System.err.println(" -alias <alias>        alias name of the entry to process");
     System.err.println(" -file <filename>      output file name (default is write to stdout)");
     System.err.println(" -help                 show this message and exit");
-    System.err.println(" -keypass [:env|:file] <arg>");
+    System.err.println(" -keypass[:env|:file] <arg>");
     System.err.println("                       key password");
     System.err.println(" -keystore <keystore>  keystore name");
-    System.err.println(" -storepass [:env|:file] <arg>");
+    System.err.println(" -storepass[:env|:file] <arg>");
     System.err.println("                       keystore password");
     System.err.println(" -storetype <arg>      keystore type");
   }
