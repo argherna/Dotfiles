@@ -253,31 +253,38 @@ class ImportBase64SecretKey implements Runnable {
       String arg = args[argIdx];
       switch (arg) {
         case "-alias":
+          checkOptionHasArgument(arg, args, argIdx);
           app.setAlias(args[++argIdx]);
           break;
         case "-file":
+          checkOptionHasArgument(arg, args, argIdx);
           app.setInFilename(args[++argIdx]);
           break;
         case "-help":
           showUsageAndExit(2);
           break;
         case "-keyalg":
+          checkOptionHasArgument(arg, args, argIdx);
           app.setKeyalg(args[++argIdx].toUpperCase());
           break;
         case "-keypass":
-          app.setKeypass(readPassword(args, ++argIdx));
+          checkOptionHasArgument(arg, args, argIdx);
+          app.setKeypass(readPassword(arg, args[++argIdx]));
           break;
         case "-keystore":
         case "-keypass:env":
         case "-keypass:file":
+          checkOptionHasArgument(arg, args, argIdx);
           app.setKeystoreName(args[++argIdx]);
           break;
         case "-storepass":
         case "-storepass:env":
         case "-storepass:file":
-          app.setStorepass(readPassword(args, ++argIdx));
+          checkOptionHasArgument(arg, args, argIdx);
+          app.setStorepass(readPassword(arg, args[++argIdx]));
           break;
         case "-storetype":
+          checkOptionHasArgument(arg, args, argIdx);
           app.setStoretype(args[++argIdx].toUpperCase());
           break;
         default:
@@ -324,6 +331,31 @@ class ImportBase64SecretKey implements Runnable {
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  /**
+   * If the option does not have an argument, show an error message, show usage,
+   * and exit with code 1.
+   * 
+   * @param arg    argument name.
+   * @param args   argument array.
+   * @param argIdx current index of argument array.
+   */
+  private static void checkOptionHasArgument(String arg, String[] args, int argIdx) {
+    if (args.length < argIdx + 1) {
+      showOptionArgumentError(arg);
+      showUsageAndExit(1);
+    }
+  }
+
+  /**
+   * Prints an error message stating the given option needs an argument to
+   * {@link System#err}.
+   * 
+   * @param opt option that needs an argument.
+   */
+  private static void showOptionArgumentError(String opt) {
+    System.err.printf("Command option %s needs an argument.", opt);
   }
 
   /**

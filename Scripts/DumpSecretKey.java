@@ -236,9 +236,11 @@ class DumpSecretKey implements Runnable {
       var arg = args[argIdx];
       switch (arg) {
         case "-alias":
+          checkOptionHasArgument(arg, args, argIdx);
           app.setAlias(args[++argIdx]);
           break;
         case "-file":
+          checkOptionHasArgument(arg, args, argIdx);
           outfilename = args[++argIdx];
           break;
         case "-help":
@@ -247,9 +249,11 @@ class DumpSecretKey implements Runnable {
         case "-keypass":
         case "-keypass:env":
         case "-keypass:file":
+          checkOptionHasArgument(arg, args, argIdx);
           app.setKeypass(readPassword(arg, args[++argIdx]));
           break;
         case "-keystore":
+          checkOptionHasArgument(arg, args, argIdx);
           app.setKeystoreName(args[++argIdx]);
           break;
         case "-raw":
@@ -258,9 +262,11 @@ class DumpSecretKey implements Runnable {
         case "-storepass":
         case "-storepass:env":
         case "-storepass:file":
+          checkOptionHasArgument(arg, args, argIdx);
           app.setStorepass(readPassword(arg, args[++argIdx]));
           break;
         case "-storetype":
+          checkOptionHasArgument(arg, args, argIdx);
           app.setStoreType(args[++argIdx].toUpperCase());
           break;
         default:
@@ -285,16 +291,16 @@ class DumpSecretKey implements Runnable {
       app.run();
       var secretkey = app.getSecretKeyEntry();
 
-      var encoded = new byte[0];
+      var secretKeyBytes = new byte[0];
       if (Objects.nonNull(secretkey)) {
-        encoded = secretkey.getSecretKey().getEncoded();
+        secretKeyBytes = secretkey.getSecretKey().getEncoded();
       } else {
         System.err.printf("Alias \"%s\" not found in %s!%n", app.getAlias(), app.getKeystoreName());
         System.exit(1);
       }
 
       // Send it to output.
-      var key = raw ? new String(encoded) : new String(Base64.getEncoder().encode(encoded));
+      var key = raw ? new String(secretKeyBytes) : new String(Base64.getEncoder().encode(secretKeyBytes));
       out.print(key);
 
     } catch (Exception e) {
@@ -347,6 +353,31 @@ class DumpSecretKey implements Runnable {
   }
 
   /**
+   * If the option does not have an argument, show an error message, show usage,
+   * and exit with code 1.
+   * 
+   * @param arg    argument name.
+   * @param args   argument array.
+   * @param argIdx current index of argument array.
+   */
+  private static void checkOptionHasArgument(String arg, String[] args, int argIdx) {
+    if (args.length < argIdx + 1) {
+      showOptionArgumentError(arg);
+      showUsageAndExit(1);
+    }
+  }
+
+  /**
+   * Prints an error message stating the given option needs an argument to
+   * {@link System#err}.
+   * 
+   * @param opt option that needs an argument.
+   */
+  private static void showOptionArgumentError(String opt) {
+    System.err.printf("Command option %s needs an argument.", opt);
+  }
+
+  /**
    * Prints a usage message to {@link System#err} and exits with the given code.
    * 
    * @param code the exit code.
@@ -372,7 +403,7 @@ class DumpSecretKey implements Runnable {
     System.err.println(" -alias <alias>        alias name of the entry to process");
     System.err.println(" -file <filename>      output file name (default is write to stdout)");
     System.err.println(" -help                 show this message and exit");
-    System.err.println(" -keypass[:env|:file]  <arg>");
+    System.err.println(" -keypass[:env|:file] <arg>");
     System.err.println("                       key password");
     System.err.println(" -keystore <keystore>  keystore name");
     System.err.println(" -raw                  dump the raw value (useful for passwords)");
