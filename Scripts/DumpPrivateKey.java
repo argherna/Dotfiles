@@ -404,7 +404,7 @@ class DumpPrivateKey implements Runnable {
     String b64 = encoder.encodeToString(pk.getEncoded());
     out.printf("-----BEGIN %s PRIVATE KEY-----%n", pk.getAlgorithm());
     out.printf("Key-Format: %s%n", pk.getFormat());
-    out.printf("Keystore-File: %s%n", keystoreFile.getName());
+    out.printf("Keystore-File: %s%n", keystoreFile.getAbsolutePath());
     out.printf("Keystore-Type: %s%n", ks.getType());
     out.println();
     int index = 0;
