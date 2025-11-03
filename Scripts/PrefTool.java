@@ -109,6 +109,10 @@ public class PrefTool implements ActionListener, ListSelectionListener, Runnable
     private static final File DEV_NULL = System.getProperty("os.name").contains("Windows") ? new File("NUL")
             : new File("/dev/null");
 
+    private static Preferences systemroot = Preferences.systemRoot();
+
+    private static Preferences userroot = Preferences.userRoot();
+
     private DefaultTableModel pvtm;
 
     private DefaultTreeModel ntm;
@@ -365,7 +369,7 @@ public class PrefTool implements ActionListener, ListSelectionListener, Runnable
      * @throws BackingStoreException if a BackingStoreException is thrown.
      */
     private void runAddCommand() throws BackingStoreException {
-        var proot = isSystemRoot() ? Preferences.systemRoot() : Preferences.userRoot();
+        var proot = isSystemRoot() ? systemroot : userroot;
         if (!proot.nodeExists(arguments.get(0))) {
             addNode(proot, arguments.get(0));
         }
@@ -381,7 +385,7 @@ public class PrefTool implements ActionListener, ListSelectionListener, Runnable
      * @throws IOException           if an IOException is thrown.
      */
     private void runExportCommand() throws BackingStoreException, IOException {
-        var proot = isSystemRoot() ? Preferences.systemRoot() : Preferences.userRoot();
+        var proot = isSystemRoot() ? systemroot : userroot;
         if (!proot.nodeExists(arguments.get(0))) {
             throw new IllegalArgumentException(
                     MessageFormat.format(RB.getString("pt.err_fmt.node_dne"), arguments.get(0)));
@@ -411,7 +415,7 @@ public class PrefTool implements ActionListener, ListSelectionListener, Runnable
      * @throws BackingStoreException if a BackingStoreException is thrown.
      */
     private void runRemoveCommand() throws BackingStoreException {
-        var proot = isSystemRoot() ? Preferences.systemRoot() : Preferences.userRoot();
+        var proot = isSystemRoot() ? systemroot : userroot;
         if (!proot.nodeExists(arguments.get(0))) {
             throw new IllegalArgumentException(
                     MessageFormat.format(RB.getString("pt.err_fmt.node_dne"), arguments.get(0)));
@@ -905,8 +909,8 @@ public class PrefTool implements ActionListener, ListSelectionListener, Runnable
      */
     private void refreshTree() {
         try {
-            Preferences.userRoot().flush();
-            Preferences.systemRoot().flush();
+            userroot.flush();
+            systemroot.flush();
             var root = (DefaultMutableTreeNode) ntm.getRoot();
             root.removeAllChildren();
             fillTree(root);
@@ -1297,11 +1301,11 @@ public class PrefTool implements ActionListener, ListSelectionListener, Runnable
      */
     private void fillTree(DefaultMutableTreeNode root) throws BackingStoreException {
         var user = new DefaultMutableTreeNode("User");
-        addChildren(user, Preferences.userRoot());
+        addChildren(user, userroot);
         root.add(user);
 
         var system = new DefaultMutableTreeNode("System");
-        addChildren(system, Preferences.systemRoot());
+        addChildren(system, systemroot);
         root.add(system);
     }
 
@@ -1378,7 +1382,7 @@ public class PrefTool implements ActionListener, ListSelectionListener, Runnable
     private Preferences getPreferencesFromNodeAddress() {
         // I can control when this is called because this is private so no need to check
         // the node address for empty or blank.
-        var root = nodeAddress.startsWith("User:") ? Preferences.userRoot() : Preferences.systemRoot();
+        var root = nodeAddress.startsWith("User:") ? userroot : systemroot;
         return root.node(nodeAddress.split(":")[1]);
     }
 
@@ -1450,8 +1454,8 @@ public class PrefTool implements ActionListener, ListSelectionListener, Runnable
      */
     private void fillValuesTable(String nodeAddress) {
         var ary = nodeAddress.split(":");
-        Preferences prefs = (ary[0].equals("User")) ? Preferences.userRoot().node(ary[1])
-                : Preferences.systemRoot().node(ary[1]);
+        Preferences prefs = (ary[0].equals("User")) ? userroot.node(ary[1])
+                : systemroot.node(ary[1]);
         try {
             if (prefs.keys().length > 0) {
                 for (int i = 0; i < prefs.keys().length; i++) {
